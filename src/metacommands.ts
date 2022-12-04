@@ -1,22 +1,7 @@
 import * as utils from './utils';
-import * as events from './events';
 import * as discord from 'discord.js';
-import * as data from './data';
-
-export function checkbdays(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!");
-        return;
-    }
-
-    if (!utils.areConfigsSet()) {
-        utils.send(message, "I cannot do this because some configurations are missing.");
-        return;
-    }
-
-    events.announceBirthdays();
-    utils.log("'checkbdays' done.");
-}
+import * as data from "./data";
+import * as events from "./events";
 
 export function checkreminders(message: discord.Message): void {
     if (!utils.isOwner(message)) {
@@ -25,17 +10,7 @@ export function checkreminders(message: discord.Message): void {
     }
 
     events.announceReminders();
-    utils.log("'checkreminders' done.");
-}
-
-export function recalculate(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!");
-        return;
-    }
-
-    events.recalculateUtcsForThisYear();
-    utils.log("'recalculate' done.");
+    utils.send(message, "'checkreminders' done.");
 }
 
 export function load(message: discord.Message): void {
@@ -45,7 +20,7 @@ export function load(message: discord.Message): void {
     }
 
     data.loadImmediate();
-    utils.log("'load' done.");
+    utils.send(message, "'load' done.");
 }
 
 export function save(message: discord.Message): void {
@@ -55,7 +30,7 @@ export function save(message: discord.Message): void {
     }
 
     data.saveImmediate();
-    utils.log("'save' done.");
+    utils.send(message, "'save' done.");
 }
 
 export function invite(message: discord.Message): void {

@@ -5,8 +5,8 @@ import * as data from './data';
 import * as utils from './utils';
 
 const bot = new discord.Client({
-    partials: ["REACTION", "MESSAGE", "CHANNEL"],
-    ws: { intents: ["GUILDS", "GUILD_MESSAGES", "GUILD_MEMBERS", "DIRECT_MESSAGES"] }
+    partials: ["MESSAGE", "CHANNEL"],
+    ws: { intents: ["GUILDS", "GUILD_MESSAGES"] }
 });
 const botId = process.env.BOT_ID;
 const prefix = process.env.COMMAND;
@@ -15,7 +15,7 @@ let isReady = false;
 bot.login(process.env.BOT_TOKEN);
 
 bot.on("ready", async () => {
-    bot.user.setPresence({ activity: { name: "Birthday Bot - $help" }, status: "dnd" });
+    bot.user.setPresence({ activity: { name: "Reminder Bot - $help" }, status: "dnd" });
     await data.init();
     handler.handleEvents();
     isReady = true;
@@ -25,13 +25,8 @@ bot.on("ready", async () => {
 bot.on("message", (message) => {
     if (!isReady || message.author.id === botId) return;
 
-    const isDM = message.channel instanceof discord.DMChannel;
-    const isCommand = message.content.startsWith(prefix);
-
-    if (isCommand) { // handles commands even inside DMs
+    if (message.content.startsWith(prefix)) {
         handler.handleCommand(message);
-    } else if (isDM) {
-        handler.handleDM(message);
     }
 });
 
