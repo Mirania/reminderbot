@@ -20,6 +20,8 @@ export function help(message: discord.Message): void {
     utils.sendEmbed(message, embed);
 }
 
+export const h = help;
+
 export function reminder(message: discord.Message, args: string[]): void {
     if (!utils.isOwner(message)) {
         return;

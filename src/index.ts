@@ -15,7 +15,7 @@ let isReady = false;
 bot.login(process.env.BOT_TOKEN);
 
 bot.on("ready", async () => {
-    bot.user.setPresence({ activity: { name: "Reminder Bot - $help" }, status: "dnd" });
+    bot.user.setPresence({ activity: { name: `Reminder Bot - ${prefix}help` }, status: "dnd" });
     await data.init();
     handler.handleEvents();
     isReady = true;
