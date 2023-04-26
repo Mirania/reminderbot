@@ -14,6 +14,7 @@ export function help(message: discord.Message): void {
         .setTitle("Here's what I can do:")
         .addField(`${prefix}r / ${prefix}reminder`, "Set a reminder.")
         .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
+        .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.");
 
@@ -37,7 +38,7 @@ export function reminder(message: discord.Message, args: string[]): void {
     }
 
     if (args[0] === "in") {
-        buildRelativeTimeReminder(message, args, false);
+        buildRelativeTimeReminder(message, args, false, false);
     } else if (args[0] === "at") {
         buildAbsoluteTimeReminder(message, args);
     } else {
@@ -62,10 +63,35 @@ export function periodicreminder(message: discord.Message, args: string[]): void
         return;
     }
 
-    buildRelativeTimeReminder(message, args, true);
+    buildRelativeTimeReminder(message, args, true, false);
 }
 
 export const pr = periodicreminder;
+
+export function delay(message: discord.Message, args: string[]): void {
+    if (!utils.isOwner(message)) {
+        return;
+    }
+
+    const usage = `${utils.usage("delay", "date")}\n` +
+        "The 'date' should be something like 1d10h20m.";
+
+    if (args.length < 1) {
+        utils.send(message, `To delay a reminder, you can type:\n${usage}`);
+        return;
+    }
+
+    const toDelay = data.getLastReminderMessage();
+
+    if (!toDelay) {
+        utils.send(message, "There is no reminder to delay.");
+        return;
+    }
+
+    buildRelativeTimeReminder(message, [null, args[0], toDelay], false, true);
+}
+
+export const d = delay;
 
 export function list(message: discord.Message): void {
     if (!utils.isOwner(message)) {
@@ -160,6 +186,7 @@ function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: 
         switch (unit) {
             case "year": case "y": date.add(value, "year"); break;
             case "month": case "mo": date.add(value, "month"); break;
+            case "week": case "w": date.add(value, "week"); break;
             case "day": case "d": date.add(value, "day"); break;
             case "hour": case "h": date.add(value, "hour"); break;
             case "minute": case "m": date.add(value, "minute"); break;
@@ -170,7 +197,7 @@ function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: 
     return {valid: true, date, timeValues};
 }
 
-async function buildRelativeTimeReminder(message: discord.Message, args: string[], isPeriodic: boolean): Promise<void> {
+async function buildRelativeTimeReminder(message: discord.Message, args: string[], isPeriodic: boolean, echoReminder: boolean): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
         return;
@@ -178,7 +205,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     const usage = `${utils.usage("reminder", "in 1d10h20m It is time!")}\n` +
         "This would make me ping you saying \"It is time!\" in 1 day, 10 hours and 20 minutes from now.\n" +
-        "You can use the units `year/y`, `month/mo`, `day/d`, `hour/h`, and `minute/m`.";
+        "You can use the units `year/y`, `month/mo`, `week/w`, `day/d`, `hour/h`, and `minute/m`.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -229,6 +256,8 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     if (isPeriodic) {
         utils.send(message, `Your reminder named '${reminder.name}' will repeat every ${reminder.rawTime}!`);
+    } else if (echoReminder) {
+        utils.send(message, `Your reminder '${reminder.text}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     } else {
         utils.send(message, `Your reminder has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     }

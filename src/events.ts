@@ -23,6 +23,7 @@ export async function announceReminders(): Promise<void> {
         }
 
         await utils.send(channel, `${utils.mentionUser(reminder.authorId)} says: ${reminder.text}`);
+        await data.setLastReminderMessage(reminder.text);
         reminder.isPeriodic ? renewReminder(reminder) : delete reminders[key];
     }
 

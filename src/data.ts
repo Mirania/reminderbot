@@ -12,6 +12,7 @@ export type Reminder = {
 }
 
 let reminders: { [key: string]: Reminder } = {};
+let lastReminderMessage: string | undefined = undefined;
 
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
@@ -23,6 +24,7 @@ export async function init(): Promise<void> {
  */
 export async function loadImmediate(): Promise<void> {
     reminders = await db.get("reminders/") ?? {};
+    lastReminderMessage = await db.get("reminderconfig/last/");
 }
 
 /**
@@ -50,4 +52,13 @@ export function getReminders(): { [key: string]: Reminder } {
 
 export async function setReminder(reminder: Reminder): Promise<void> {
     reminders[await saveReminder(reminder)] = reminder;
+}
+
+export async function setLastReminderMessage(message: string): Promise<void> {
+    lastReminderMessage = message;
+    await db.post("reminderconfig/last/", message);
+}
+
+export function getLastReminderMessage(): string | undefined {
+    return lastReminderMessage;
 }
