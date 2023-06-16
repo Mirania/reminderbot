@@ -179,7 +179,7 @@ function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: 
         timeValues[tokens[i + 1]] = value;
     }
 
-    const date = moment(start);
+    const date = moment(start).tz(utils.userTz());
 
     for (const unit in timeValues) {
         const value = timeValues[unit];
@@ -212,7 +212,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const now = moment(), nowUtc = moment(now).utc().valueOf();
+    const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
     const parsedDate = parseRelativeTime(now, args[1]);
 
     if (!parsedDate.valid) {
@@ -268,7 +268,7 @@ function parseAbsoluteTime(absoluteTime: string): {valid: boolean, date?: moment
         return {valid: false};
     }
 
-    const date = moment(absoluteTime, "DD/MM/YYYY HH:mm").tz(utils.userTz());
+    const date = moment.tz(absoluteTime, "DD/MM/YYYY HH:mm", utils.userTz());
 
     return {valid: true, date};
 }

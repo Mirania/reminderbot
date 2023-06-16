@@ -6,7 +6,7 @@ import { self } from ".";
 
 export async function announceReminders(): Promise<void> {
     const reminders = data.getReminders();
-    const nowUtc = moment().utc().valueOf();
+    const nowUtc = moment().tz(utils.userTz()).utc().valueOf();
     const bot = self();
 
     for (const key in reminders) {
@@ -31,7 +31,7 @@ export async function announceReminders(): Promise<void> {
 }
 
 function renewReminder(reminder: data.Reminder): void {
-    const date = moment();
+    const date = moment().tz(utils.userTz());
 
     for (const unit in reminder.timeValues) {
         const value = reminder.timeValues[unit];
