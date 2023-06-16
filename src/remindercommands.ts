@@ -115,7 +115,7 @@ export function list(message: discord.Message): void {
     if (nonperiodic.length > 0) {
         nonperiodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         msgText += "**Non-periodic reminders:**\n";
-        nonperiodic.forEach(np => msgText += `➜ '${np.text}' at ${moment.utc(np.timestamp).format("dddd, MMMM Do YYYY, HH:mm")}\n`);
+        nonperiodic.forEach(np => msgText += `➜ '${np.text}' at ${moment.tz(np.timestamp, utils.userTz()).format("dddd, MMMM Do YYYY, HH:mm")}\n`);
     }
     if (periodic.length > 0 && nonperiodic.length > 0) {
         msgText += "\n";
@@ -212,7 +212,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const now = moment(), nowUtc = now.utc().valueOf();
+    const now = moment(), nowUtc = moment(now).utc().valueOf();
     const parsedDate = parseRelativeTime(now, args[1]);
 
     if (!parsedDate.valid) {
@@ -220,7 +220,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const dateUtc = parsedDate.date.utc().valueOf();
+    const dateUtc = moment(parsedDate.date).utc().valueOf();
     const text = args.slice(2).join(" ");
 
     if (text.length > 1000) {
@@ -268,7 +268,7 @@ function parseAbsoluteTime(absoluteTime: string): {valid: boolean, date?: moment
         return {valid: false};
     }
 
-    const date = moment(absoluteTime, "DD/MM/YYYY HH:mm").tz(process.env.OWNER_TIMEZONE.replace(/ /g, "_"));
+    const date = moment(absoluteTime, "DD/MM/YYYY HH:mm").tz(utils.userTz());
 
     return {valid: true, date};
 }
@@ -288,7 +288,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const now = moment().tz(process.env.OWNER_TIMEZONE.replace(/ /g, "_")), nowUtc = now.utc().valueOf();
+    const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
     const parsedDate = parseAbsoluteTime(`${args[1]} ${args[2]}`);
 
     if (!parsedDate.valid) {
@@ -296,7 +296,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const dateUtc = parsedDate.date.utc().valueOf();
+    const dateUtc = moment(parsedDate.date).utc().valueOf();
     const text = args.slice(3).join(" ");
 
     if (text.length > 1000) {

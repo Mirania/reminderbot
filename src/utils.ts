@@ -105,10 +105,17 @@ export function seconds(amount: number): number {
 }
 
 /**
+ * Gets the user's timezone.
+ */
+export function userTz(): string {
+    return process.env.OWNER_TIMEZONE.replace(/ /g, "_");
+}
+
+/**
  * Prints a message to the console.
  */
 export function log(text: string): void {
-    console.log(`[${moment().format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
+    console.log(`[${moment().tz(userTz()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
 }
 
 /**

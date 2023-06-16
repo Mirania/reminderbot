@@ -45,5 +45,5 @@ function renewReminder(reminder: data.Reminder): void {
     }
 
     date.subtract(5, "second");
-    reminder.timestamp = date.utc().valueOf();
+    reminder.timestamp = moment(date).utc().valueOf();
 }
