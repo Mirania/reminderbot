@@ -111,18 +111,29 @@ export function list(message: discord.Message): void {
         return;
     }
 
+    const now = moment().tz(utils.userTz());
+
     let msgText = "";
     if (nonperiodic.length > 0) {
         nonperiodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         msgText += "**Non-periodic reminders:**\n";
-        nonperiodic.forEach(np => msgText += `➜ '${np.text}' at ${moment.tz(np.timestamp, utils.userTz()).format("dddd, MMMM Do YYYY, HH:mm")}\n`);
+        nonperiodic.forEach(np => {
+            const next = moment.tz(np.timestamp, utils.userTz());
+            const relativeTime = utils.getRelativeTimeString(now, next);
+            msgText += `➜ '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
+        });
     }
     if (periodic.length > 0 && nonperiodic.length > 0) {
         msgText += "\n";
     }
     if (periodic.length > 0) {
         msgText += "**Periodic reminders:**\n";
-        periodic.forEach(p => msgText += `➜ \`${p.name}\`: '${p.text}' every ${p.rawTime}\n`);
+        periodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
+        periodic.forEach(p => {
+            const next = moment.tz(p.timestamp, utils.userTz());
+            const relativeTime = utils.getRelativeTimeString(now, next);
+            msgText += `➜ \`${p.name}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
+        });
     }
 
     utils.send(message, msgText);
@@ -324,5 +335,6 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
 
     await data.setReminder(reminder);
 
-    utils.send(message, `Your reminder has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
+    const relativeTime = utils.getRelativeTimeString(now, parsedDate.date);
+    utils.send(message, `Your reminder has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}! \`(in ${relativeTime})\``);
 }

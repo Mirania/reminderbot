@@ -133,3 +133,48 @@ export function serverMemberName(member: discord.GuildMember): string {
     if (!member.nickname) return `${member.user.username}#${member.user.discriminator}`;
     return `${member.nickname} (${member.user.username}#${member.user.discriminator})`;
 }
+
+export function getRelativeTimeString(past: moment.Moment, future: moment.Moment) {
+    const a = moment(past).tz(userTz()), b = moment(future).tz(userTz());
+
+    const monthDiff = b.diff(a, "months");
+    if (monthDiff > 0) {
+        a.add(monthDiff, "months");
+    }
+    const dayDiff = b.diff(a, "days");
+    if (dayDiff > 0) {
+        a.add(dayDiff, "days");
+    }
+    const hourDiff = b.diff(a, "hours");
+    if (hourDiff > 0) {
+        a.add(hourDiff, "hours");
+    }
+    const minuteDiff = b.diff(a, "minutes");
+    if (minuteDiff > 0) {
+        a.add(minuteDiff, "minutes");
+    }
+
+    // could make this a lot prettier/smarter but it's easier to debug this way
+    if (monthDiff > 0) {
+        if (dayDiff > 0) return `${prepareTimeUnit('month', monthDiff)} and ${prepareTimeUnit('day', dayDiff)}`;
+        return prepareTimeUnit('month', monthDiff);
+    }
+    if (dayDiff > 0) {
+        if (dayDiff > 2 || (hourDiff === 0 && minuteDiff === 0)) return prepareTimeUnit('day', dayDiff);
+        if (hourDiff > 0 && minuteDiff === 0) return `${prepareTimeUnit('day', dayDiff)} and ${prepareTimeUnit('hour', hourDiff)}`;
+        if (hourDiff === 0 && minuteDiff > 0) return `${prepareTimeUnit('day', dayDiff)} and ${prepareTimeUnit('minute', minuteDiff)}`;
+        return `${prepareTimeUnit('day', dayDiff)}, ${prepareTimeUnit('hour', hourDiff)} and ${prepareTimeUnit('minute', minuteDiff)}`;
+    }
+    if (hourDiff > 0) {
+        if (minuteDiff > 0) return `${prepareTimeUnit('hour', hourDiff)} and ${prepareTimeUnit('minute', minuteDiff)}`;
+        return prepareTimeUnit('hour', hourDiff);
+    }
+    if (minuteDiff > 0) {
+        return prepareTimeUnit('minute', minuteDiff);
+    }
+    return "less than a minute";
+}
+
+function prepareTimeUnit(word: string, amount: number) {
+    return `${amount} ${amount > 1 ? `${word}s` : word}`;
+}
