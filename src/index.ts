@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv'; dotenv.config();
+import * as dotenv from 'dotenv'; dotenv.config({ path: 'env.txt' });
 import * as discord from 'discord.js';
 import * as handler from './handler';
 import * as data from './data';
