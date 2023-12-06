@@ -136,7 +136,7 @@ export function list(message: discord.Message): void {
         });
     }
 
-    utils.send(message, msgText);
+    utils.send(message, msgText.length > 1990 ? msgText.slice(0, 1990) + " (...)" : msgText);
 }
 
 export const l = list;
