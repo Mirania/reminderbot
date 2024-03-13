@@ -3,6 +3,7 @@ import * as discord from 'discord.js';
 import * as data from "./data";
 import * as moment from 'moment-timezone';
 import { self } from ".";
+import { getBatteryStatus } from './battery';
 
 export async function announceReminders(): Promise<void> {
     const reminders = data.getReminders();
@@ -46,4 +47,31 @@ function renewReminder(reminder: data.Reminder): void {
 
     date.subtract(5, "second");
     reminder.timestamp = moment(date).utc().valueOf();
+}
+
+const batteryLowThreshold = 100;
+
+export async function checkBattery(): Promise<void> {
+    let status: { percentage: number, isCharging: boolean };
+
+    try {
+        status = await getBatteryStatus();
+    } catch (e) {
+        utils.log("failed to check battery: " + e);
+        return;
+    }
+
+    if (status.isCharging || status.percentage >= batteryLowThreshold) {
+        return;
+    }
+
+    const bot = self();
+    const channel = await utils.getIfExists(bot.channels, "344132988398993408") as discord.TextChannel;
+
+    if (!channel) {
+        utils.log("failed to check battery, discord channel does not exist");
+        return;
+    }
+
+    await utils.send(channel, `${utils.mentionUser(process.env.OWNER_ID)} battery is low (**${status.percentage}%**)! Should charge phone.`);
 }

@@ -9,6 +9,7 @@ type CommandFunction = (message: discord.Message, args?: string[]) => void | Pro
 
 const commandList: { [name: string]: CommandFunction } = { ...reminders, ...meta};
 const reminderEventInterval = utils.seconds(45);
+const checkBatteryInterval = utils.seconds(10);
 
 export function handleCommand(message: discord.Message): void {
     const content = message.content.split(" ").filter(item => item!==""); 
@@ -23,4 +24,8 @@ export function handleEvents(): void {
         utils.log("periodic 'announceReminders'");
         events.announceReminders();
     }, reminderEventInterval);
+    setInterval(() => {
+        utils.log("periodic battery check");
+        events.checkBattery();
+    }, checkBatteryInterval);
 }
