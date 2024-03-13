@@ -49,7 +49,7 @@ function renewReminder(reminder: data.Reminder): void {
     reminder.timestamp = moment(date).utc().valueOf();
 }
 
-const batteryLowThreshold = 100;
+const batteryLowThreshold = 15;
 
 export async function checkBattery(): Promise<void> {
     let status: { percentage: number, isCharging: boolean };
