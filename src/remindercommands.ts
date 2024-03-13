@@ -3,6 +3,7 @@ import * as utils from './utils';
 import * as data from './data';
 import * as moment from 'moment-timezone';
 import { self } from '.';
+import { getBatteryStatus } from './battery';
 
 export function help(message: discord.Message): void {
     const prefix = process.env.COMMAND;
@@ -16,7 +17,8 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
         .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
-        .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.");
+        .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
+        .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.");
 
     utils.sendEmbed(message, embed);
 }
@@ -175,6 +177,17 @@ export function clear(message: discord.Message, args: string[]): void {
 }
 
 export const c = clear;
+
+export async function battery(message: discord.Message): Promise<void> {
+    try {
+        const status = await getBatteryStatus();
+        utils.send(message, `The battery is currently at **${status.percentage}%** and is${status.isCharging ? " " : " **not** "}charging.`);
+    } catch (e) {
+        utils.send(message, `\`\`\`${e}\`\`\``);
+    }
+}
+
+export const b = battery;
 
 function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: boolean, date?: moment.Moment, timeValues?: {[unit: string]: number}} {
     const tokens = relativeTime.match(/[0-9]+|[A-Za-z]+/g) ?? [,];
