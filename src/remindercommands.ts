@@ -32,7 +32,7 @@ export function reminder(message: discord.Message, args: string[]): void {
 
     const usage = `${utils.usage("reminder", "in/at date message")}\n` +
         "For relative time (in), 'date' should be something like 1d10h20m.\n" +
-        "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.";
+        "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone. Time can be omitted - default will be 06:00.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -305,15 +305,17 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
 
     const usage = `${utils.usage("reminder", "at 31/01/2030 00:45 It is time!")}\n` +
         "This would make me ping you saying \"It is time!\" at exactly that date.\n" +
-        "This uses the bot owner's timezone.";
+        "This uses the bot owner's timezone.\n\n" +
+        "Alternatively you could omit the 00:45 - the default time will be 06:00.";
 
-    if (args.length < 4) {
+    if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
         return;
     }
 
     const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseAbsoluteTime(`${args[1]} ${args[2]}`);
+    const isTimeInputted = /[\d]{2}:[\d]{2}/g.test(args[2]);
+    const parsedDate = parseAbsoluteTime(`${args[1]} ${isTimeInputted ? args[2] : '06:00'}`);
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
@@ -321,7 +323,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     }
 
     const dateUtc = moment(parsedDate.date).utc().valueOf();
-    const text = args.slice(3).join(" ");
+    const text = args.slice(isTimeInputted ? 3 : 2).join(" ");
 
     if (text.length > 1000) {
         utils.send(message, `That message is way too long!`);
