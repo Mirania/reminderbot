@@ -178,3 +178,13 @@ export function getRelativeTimeString(past: moment.Moment, future: moment.Moment
 function prepareTimeUnit(word: string, amount: number) {
     return `${amount} ${amount > 1 ? `${word}s` : word}`;
 }
+
+export function chunk(input: string, length: number) {
+    let chunks: string[] = [], i = 0, n = input.length;
+
+    while (i < n) {
+        chunks.push(input.slice(i, i += length));
+    }
+
+    return chunks;
+}

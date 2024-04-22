@@ -95,7 +95,7 @@ export function delay(message: discord.Message, args: string[]): void {
 
 export const d = delay;
 
-export function list(message: discord.Message): void {
+export async function list(message: discord.Message): Promise<void> {
     if (!utils.isOwner(message)) {
         return;
     }
@@ -115,30 +115,51 @@ export function list(message: discord.Message): void {
 
     const now = moment().tz(utils.userTz());
 
-    let msgText = "";
+    const categories: { name: string, ends?: moment.Moment, npAnnounced?: boolean, pAnnounced?: boolean }[] = [
+        { name: "Today", ends: moment(now).add(1, "day").set("hour", 0).set("minute", 0) },
+        { name: "Tomorrow", ends: moment(now).add(2, "day").set("hour", 0).set("minute", 0) },
+        { name: "Later" }
+    ];
+
+    let npMsgText = "";
     if (nonperiodic.length > 0) {
         nonperiodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
-        msgText += "**Non-periodic reminders:**\n";
+        npMsgText += "**Non-periodic reminders:**\n";
         nonperiodic.forEach(np => {
             const next = moment.tz(np.timestamp, utils.userTz());
             const relativeTime = utils.getRelativeTimeString(now, next);
-            msgText += `➜ '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
+            const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
+            if (category && !category.npAnnounced) {
+                category.npAnnounced = true;
+                npMsgText += `============== ${category.name} ==============\n`;
+            }
+            npMsgText += `➜ '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
         });
     }
-    if (periodic.length > 0 && nonperiodic.length > 0) {
-        msgText += "\n";
-    }
+
+    let pMsgText = "";
     if (periodic.length > 0) {
-        msgText += "**Periodic reminders:**\n";
+        pMsgText += "**Periodic reminders:**\n";
         periodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         periodic.forEach(p => {
             const next = moment.tz(p.timestamp, utils.userTz());
             const relativeTime = utils.getRelativeTimeString(now, next);
-            msgText += `➜ \`${p.name}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
+            const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
+            if (category && !category.pAnnounced) {
+                category.pAnnounced = true;
+                pMsgText += `============== ${category.name} ==============\n`;
+            }
+            pMsgText += `➜ \`${p.name}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
         });
     }
 
-    utils.send(message, msgText.length > 1990 ? msgText.slice(0, 1990) + " (...)" : msgText);
+    if (npMsgText.length > 0) {
+        await utils.send(message, npMsgText.length > 1990 ? npMsgText.slice(0, 1990) + " (...)" : npMsgText);
+    }
+    if (pMsgText.length > 0) {
+        pMsgText = "­\n" + pMsgText;
+        await utils.send(message, pMsgText.length > 1990 ? pMsgText.slice(0, 1990) + " (...)" : pMsgText);
+    }
 }
 
 export const l = list;
