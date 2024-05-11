@@ -31,8 +31,10 @@ export function reminder(message: discord.Message, args: string[]): void {
     }
 
     const usage = `${utils.usage("reminder", "in/at date message")}\n` +
-        "For relative time (in), 'date' should be something like 1d10h20m.\n" +
-        "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone. Time can be omitted - default will be 06:00.";
+        "For relative time (in), 'date' should be something like 1d10h20m.\n\n" +
+        "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.\n" +
+        "- Time can be omitted - default will be 06:00.\n" +
+        "- Year can also be omitted - default will be the current year.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -327,7 +329,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const usage = `${utils.usage("reminder", "at 31/01/2030 00:45 It is time!")}\n` +
         "This would make me ping you saying \"It is time!\" at exactly that date.\n" +
         "This uses the bot owner's timezone.\n\n" +
-        "Alternatively you could omit the 00:45 - the default time will be 06:00.";
+        "Alternatively you could omit the 00:45 - the default time will be 06:00.\n" +
+        "You could also omit the 2030 - the default year will be the current one.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -336,7 +339,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
 
     const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
     const isTimeInputted = /[\d]{2}:[\d]{2}/g.test(args[2]);
-    const parsedDate = parseAbsoluteTime(`${args[1]} ${isTimeInputted ? args[2] : '06:00'}`);
+    const isYearInputted = /[\d]{2}\/[\d]{2}\/[\d]{4}/g.test(args[1]);
+    const parsedDate = parseAbsoluteTime(`${isYearInputted ? args[1] : args[1] + '/' + now.year()} ${isTimeInputted ? args[2] : '06:00'}`);
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
