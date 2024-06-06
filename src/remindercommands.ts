@@ -34,7 +34,8 @@ export function reminder(message: discord.Message, args: string[]): void {
         "For relative time (in), 'date' should be something like 1d10h20m.\n\n" +
         "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.\n" +
         "- Time can be omitted - default will be 06:00.\n" +
-        "- Year can also be omitted - default will be the current year.";
+        "- Year can also be omitted - default will be the current year.\n" +
+        "- Day/month/year can be also be written as sun, sunday, mon, monday... this means the next sunday/monday/etc.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -320,6 +321,43 @@ function parseAbsoluteTime(absoluteTime: string): {valid: boolean, date?: moment
     return {valid: true, date};
 }
 
+function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string, now: moment.Moment): { converted: string, isTimeInputted: boolean } {
+    let convertedDate = "invalid", convertedTime = "invalid", isTimeInputted = true;
+
+    if (/^[A-Za-z]+$/.test(dateArg)) {
+        let targetWeekday: number;
+        switch (dateArg.toLowerCase()) {
+            case "sun": case "sunday": targetWeekday = 0; break;
+            case "mon": case "monday": targetWeekday = 1; break;
+            case "tue": case "tuesday": targetWeekday = 2; break;
+            case "wed": case "wednesday": targetWeekday = 3; break;
+            case "thu": case "thursday": targetWeekday = 4; break;
+            case "fri": case "friday": targetWeekday = 5; break;
+            case "sat": case "saturday": targetWeekday = 6; break;
+            default: targetWeekday = -1;
+        }
+        if (targetWeekday === -1) {
+            convertedDate = "invalid";
+        } else {
+            const currentWeekday = now.weekday();
+            convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "d").format("DD/MM/YYYY");
+        }
+    } else if (/^[\d]{2}\/[\d]{2}$/.test(dateArg)) {
+        convertedDate = `${dateArg}/${now.year()}`;
+    } else if (/^[\d]{2}\/[\d]{2}\/[\d]{4}$/.test(dateArg)) {
+        convertedDate = dateArg;
+    }
+
+    if (/^[\d]{2}:[\d]{2}$/g.test(timeArg)) {
+        convertedTime = timeArg;
+    } else {
+        convertedTime = "06:00";
+        isTimeInputted = false;
+    }
+
+    return { converted: `${convertedDate} ${convertedTime}`, isTimeInputted };
+}
+
 async function buildAbsoluteTimeReminder(message: discord.Message, args: string[]): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
@@ -330,7 +368,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "This would make me ping you saying \"It is time!\" at exactly that date.\n" +
         "This uses the bot owner's timezone.\n\n" +
         "Alternatively you could omit the 00:45 - the default time will be 06:00.\n" +
-        "You could also omit the 2030 - the default year will be the current one.";
+        "You could also omit the 2030 - the default year will be the current one.\n" +
+        "Instead of 31/01/2030 you could also use sun, sunday, mon, monday... this means the next sunday/monday/etc.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -338,9 +377,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     }
 
     const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const isTimeInputted = /[\d]{2}:[\d]{2}/g.test(args[2]);
-    const isYearInputted = /[\d]{2}\/[\d]{2}\/[\d]{4}/g.test(args[1]);
-    const parsedDate = parseAbsoluteTime(`${isYearInputted ? args[1] : args[1] + '/' + now.year()} ${isTimeInputted ? args[2] : '06:00'}`);
+    const { converted, isTimeInputted } = convertAbsoluteTimeRawInput(args[1], args[2], now); 
+    const parsedDate = parseAbsoluteTime(converted);
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
