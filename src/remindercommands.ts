@@ -35,9 +35,10 @@ export function reminder(message: discord.Message, args: string[]): void {
         "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.\n" +
         "- Time can be omitted - default will be 06:00.\n" +
         "- Year can also be omitted - default will be the current year.\n" +
-        "- Day/month/year can be also be written as sun, sunday, mon, monday... this means the next sunday/monday/etc.";
+        "- Day/month/year can be also be written as sun, sunday, mon, monday... this means the next sunday/monday/etc.\n" +
+        "- Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
-    if (args.length < 3) {
+    if (args.length < 2) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
         return;
     }
@@ -46,6 +47,12 @@ export function reminder(message: discord.Message, args: string[]): void {
         buildRelativeTimeReminder(message, args, false, false);
     } else if (args[0] === "at") {
         buildAbsoluteTimeReminder(message, args);
+    } else if (args[0]) {
+        if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
+            buildAbsoluteTimeReminder(message, ["at", ...args]);
+        } else {
+            buildRelativeTimeReminder(message, ["in", ...args], false, false);
+        }
     } else {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
         return;
@@ -253,7 +260,8 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     const usage = `${utils.usage("reminder", "in 1d10h20m It is time!")}\n` +
         "This would make me ping you saying \"It is time!\" in 1 day, 10 hours and 20 minutes from now.\n" +
-        "You can use the units `year/y`, `month/mo`, `week/w`, `day/d`, `hour/h`, and `minute/m`.";
+        "You can use the units `year/y`, `month/mo`, `week/w`, `day/d`, `hour/h`, and `minute/m`.\n" +
+        "You can also omit the `in`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -369,7 +377,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "This uses the bot owner's timezone.\n\n" +
         "Alternatively you could omit the 00:45 - the default time will be 06:00.\n" +
         "You could also omit the 2030 - the default year will be the current one.\n" +
-        "Instead of 31/01/2030 you could also use sun, sunday, mon, monday... this means the next sunday/monday/etc.";
+        "Instead of 31/01/2030 you could also use sun, sunday, mon, monday... this means the next sunday/monday/etc.\n" +
+        "You can also omit the `at`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
