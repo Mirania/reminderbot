@@ -66,16 +66,15 @@ export function periodicreminder(message: discord.Message, args: string[]): void
         return;
     }
 
-    if (args.length < 3) {
-        const usage = `${utils.usage("periodicreminder", "name date message")}\n` +
-            "The 'name' should be one word; it can later be used to delete this reminder.\n" +
+    if (args.length < 2) {
+        const usage = `${utils.usage("periodicreminder", "date message")}\n` +
             "The 'date' should be something like 1d10h20m.";
 
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
         return;
     }
 
-    buildRelativeTimeReminder(message, args, true, false);
+    buildRelativeTimeReminder(message, [null, ...args], true, false);
 }
 
 export const pr = periodicreminder;
@@ -143,7 +142,7 @@ export async function list(message: discord.Message): Promise<void> {
                 category.npAnnounced = true;
                 npMsgText += `============== ${category.name} ==============\n`;
             }
-            npMsgText += `➜ '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
+            npMsgText += `➜ \`${np.id}\`: '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
         });
     }
 
@@ -159,7 +158,7 @@ export async function list(message: discord.Message): Promise<void> {
                 category.pAnnounced = true;
                 pMsgText += `============== ${category.name} ==============\n`;
             }
-            pMsgText += `➜ \`${p.name}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
+            pMsgText += `➜ \`${p.id}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
         });
     }
 
@@ -180,9 +179,9 @@ export function clear(message: discord.Message, args: string[]): void {
     }
 
     if (args.length < 1) {
-        const usage = `${utils.usage("clear", "name")}\n` +
-            "The 'name' should be one word; it should be the name of some periodic reminder.\n" +
-            `Use ${process.env.COMMAND}list to check all names.`;
+        const usage = `${utils.usage("clear", "id")}\n` +
+            "The 'id' should be a number; it should be the id of some reminder.\n" +
+            `Use ${process.env.COMMAND}list to check all ids.`;
 
         utils.send(message, `To clear a reminder, you can type:\n${usage}`);
         return;
@@ -192,19 +191,24 @@ export function clear(message: discord.Message, args: string[]): void {
 
     let targetKey: string;
     for (const key in reminders) {
-        if (reminders[key].isPeriodic && reminders[key].name && reminders[key].name.toLowerCase() === args[0].toLowerCase()) {
+        if (reminders[key].id != null && reminders[key].id === Number(args[0])) {
             targetKey = key;
         }
     }
 
     if (!targetKey) {
-        utils.send(message, `Did not find a reminder with that namer. Use ${process.env.COMMAND}list to check all names.`);
+        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`);
         return;
     }
 
+    const deletedReminder = reminders[targetKey];
+    const now = moment().tz(utils.userTz());
+    const next = moment.tz(deletedReminder.timestamp, utils.userTz());
+    const relativeTime = utils.getRelativeTimeString(now, next);
+
     delete reminders[targetKey];
     data.deleteReminder(targetKey);
-    utils.send(message, `Deleted the reminder named '${args[0]}'.`);
+    utils.send(message, `Deleted the reminder '${deletedReminder.text}' which would've happened on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
 }
 
 export const c = clear;
@@ -289,21 +293,18 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    if (dateUtc - nowUtc > 365 * 24 * 60 * 60 * 1000) {
-        utils.send(message, `1 year into the future is the latest you can set a reminder to!`);
-        return;
-    }
+    const id = await data.generateId();
 
     const reminder: data.Reminder = {
         isPeriodic,
         text,
         timestamp: dateUtc,
         authorId: message.author.id,
-        channelId: message.channel.id
+        channelId: message.channel.id,
+        id
     };
 
     if (isPeriodic) {
-        reminder.name = args[0];
         reminder.rawTime = args[1];
         reminder.timeValues = parsedDate.timeValues;
     }
@@ -311,11 +312,11 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     await data.setReminder(reminder);
 
     if (isPeriodic) {
-        utils.send(message, `Your reminder named '${reminder.name}' will repeat every ${reminder.rawTime}!`);
+        utils.send(message, `Your reminder with id \`${id}\` will repeat every ${reminder.rawTime}!`);
     } else if (echoReminder) {
-        utils.send(message, `Your reminder '${reminder.text}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
+        utils.send(message, `Your reminder with id \`${id}\` '${reminder.text}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     } else {
-        utils.send(message, `Your reminder has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
+        utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     }
 }
 
@@ -407,21 +408,19 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    if (dateUtc - nowUtc > 365 * 24 * 60 * 60 * 1000) {
-        utils.send(message, `1 year into the future is the latest you can set a reminder to!`);
-        return;
-    }
+    const id = await data.generateId();
 
     const reminder: data.Reminder = {
         isPeriodic: false,
         text,
         timestamp: dateUtc,
         authorId: message.author.id,
-        channelId: message.channel.id
+        channelId: message.channel.id,
+        id
     };
 
     await data.setReminder(reminder);
 
     const relativeTime = utils.getRelativeTimeString(now, parsedDate.date);
-    utils.send(message, `Your reminder has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}! \`(in ${relativeTime})\``);
+    utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}! \`(in ${relativeTime})\``);
 }

@@ -6,13 +6,16 @@ export type Reminder = {
     timestamp: number, // unix time (ms) of target date
     authorId: string, // user to be pinged
     channelId: string, // destination channel
-    name?: string, // used for periodic reminders
+    id: number,
     rawTime?: string, // used for periodic reminders
     timeValues?: { [unit: string]: number } // used to renew a periodic reminder
 }
 
 let reminders: { [key: string]: Reminder } = {};
 let lastReminderMessage: string | undefined = undefined;
+
+let latestId: number = -1;
+const maxId: number = 250;
 
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
@@ -25,6 +28,7 @@ export async function init(): Promise<void> {
 export async function loadImmediate(): Promise<void> {
     reminders = await db.get("reminders/") ?? {};
     lastReminderMessage = await db.get("reminderconfig/last/");
+    latestId = await db.get("reminderconfig/latestId");
 }
 
 /**
@@ -61,4 +65,10 @@ export async function setLastReminderMessage(message: string): Promise<void> {
 
 export function getLastReminderMessage(): string | undefined {
     return lastReminderMessage;
+}
+
+export async function generateId(): Promise<number> {
+    const newId = (++latestId) % (maxId + 1);
+    await db.post("reminderconfig/latestId", newId);
+    return newId;
 }
