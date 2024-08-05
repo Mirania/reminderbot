@@ -15,7 +15,7 @@ let reminders: { [key: string]: Reminder } = {};
 let lastReminderMessage: string | undefined = undefined;
 
 let latestId: number = -1;
-const maxId: number = 250;
+const maxId: number = 5000;
 
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
