@@ -18,7 +18,8 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
-        .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.");
+        .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
+        .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.");
 
     utils.sendEmbed(message, embed);
 }
@@ -223,6 +224,17 @@ export async function battery(message: discord.Message): Promise<void> {
 }
 
 export const b = battery;
+
+export async function kill(message: discord.Message): Promise<void> {
+    try {
+        await utils.send(message, "Restarting...");
+        process.exit(1000);
+    } catch (e) {
+        utils.send(message, `\`\`\`${e}\`\`\``);
+    }
+}
+
+export const k = kill;
 
 function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: boolean, date?: moment.Moment, timeValues?: {[unit: string]: number}} {
     const tokens = relativeTime.match(/[0-9]+|[A-Za-z]+/g) ?? [,];
