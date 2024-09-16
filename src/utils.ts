@@ -1,4 +1,4 @@
-import * as discord from 'discord.js';;
+import * as discord from 'discord.js';
 import * as moment from 'moment-timezone';
 
 /**

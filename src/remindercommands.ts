@@ -4,6 +4,7 @@ import * as data from './data';
 import * as moment from 'moment-timezone';
 import { self } from '.';
 import { getBatteryStatus } from './battery';
+import { parseAbsoluteTime, parseRelativeTime } from './parsers';
 
 export function help(message: discord.Message): void {
     const prefix = process.env.COMMAND;
@@ -36,7 +37,7 @@ export function reminder(message: discord.Message, args: string[]): void {
         "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.\n" +
         "- Time can be omitted - default will be 06:00.\n" +
         "- Year can also be omitted - default will be the current year.\n" +
-        "- Day/month/year can be also be written as sun, sunday, mon, monday... this means the next sunday/monday/etc.\n" +
+        "- Day/month/year can be also be written as sun, sunday, mon, monday, today... this means the next sunday/monday/etc.\n" +
         "- Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
     if (args.length < 2) {
@@ -86,7 +87,7 @@ export function delay(message: discord.Message, args: string[]): void {
     }
 
     const usage = `${utils.usage("delay", "date")}\n` +
-        "The 'date' should be something like 1d10h20m.";
+        "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.";
 
     if (args.length < 1) {
         utils.send(message, `To delay a reminder, you can type:\n${usage}`);
@@ -100,7 +101,11 @@ export function delay(message: discord.Message, args: string[]): void {
         return;
     }
 
-    buildRelativeTimeReminder(message, [null, args[0], toDelay], false, true);
+    if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
+        buildAbsoluteTimeReminder(message, ["at", ...args, toDelay]);
+    } else {
+        buildRelativeTimeReminder(message, ["in", ...args, toDelay], false, false);
+    }
 }
 
 export const d = delay;
@@ -236,38 +241,6 @@ export async function kill(message: discord.Message): Promise<void> {
 
 export const k = kill;
 
-function parseRelativeTime(start: moment.Moment, relativeTime: string): {valid: boolean, date?: moment.Moment, timeValues?: {[unit: string]: number}} {
-    const tokens = relativeTime.match(/[0-9]+|[A-Za-z]+/g) ?? [,];
-    const timeValues: { [unit: string]: number } = {};
-
-    for (let i = 0; i < tokens.length; i += 2) {
-        let value: number;
-
-        if (i + 1 >= tokens.length || timeValues[tokens[i + 1]] != undefined || isNaN(value = Number(tokens[i])) || value <= 0) {
-            return {valid: false};
-        }
-
-        timeValues[tokens[i + 1]] = value;
-    }
-
-    const date = moment(start).tz(utils.userTz());
-
-    for (const unit in timeValues) {
-        const value = timeValues[unit];
-        switch (unit) {
-            case "year": case "y": date.add(value, "year"); break;
-            case "month": case "mo": date.add(value, "month"); break;
-            case "week": case "w": date.add(value, "week"); break;
-            case "day": case "d": date.add(value, "day"); break;
-            case "hour": case "h": date.add(value, "hour"); break;
-            case "minute": case "m": date.add(value, "minute"); break;
-            default: return {valid: false};
-        }
-    }
-
-    return {valid: true, date, timeValues};
-}
-
 async function buildRelativeTimeReminder(message: discord.Message, args: string[], isPeriodic: boolean, echoReminder: boolean): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
@@ -285,7 +258,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     }
 
     const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseRelativeTime(now, args[1]);
+    const parsedDate = parseRelativeTime(now, args[1], utils.userTz());
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
@@ -332,53 +305,6 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     }
 }
 
-function parseAbsoluteTime(absoluteTime: string): {valid: boolean, date?: moment.Moment} {
-    if (!/[\d]{2}\/[\d]{2}\/[\d]{4} [\d]{2}:[\d]{2}/g.test(absoluteTime)) {
-        return {valid: false};
-    }
-
-    const date = moment.tz(absoluteTime, "DD/MM/YYYY HH:mm", utils.userTz());
-
-    return {valid: true, date};
-}
-
-function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string, now: moment.Moment): { converted: string, isTimeInputted: boolean } {
-    let convertedDate = "invalid", convertedTime = "invalid", isTimeInputted = true;
-
-    if (/^[A-Za-z]+$/.test(dateArg)) {
-        let targetWeekday: number;
-        switch (dateArg.toLowerCase()) {
-            case "sun": case "sunday": targetWeekday = 0; break;
-            case "mon": case "monday": targetWeekday = 1; break;
-            case "tue": case "tuesday": targetWeekday = 2; break;
-            case "wed": case "wednesday": targetWeekday = 3; break;
-            case "thu": case "thursday": targetWeekday = 4; break;
-            case "fri": case "friday": targetWeekday = 5; break;
-            case "sat": case "saturday": targetWeekday = 6; break;
-            default: targetWeekday = -1;
-        }
-        if (targetWeekday === -1) {
-            convertedDate = "invalid";
-        } else {
-            const currentWeekday = now.weekday();
-            convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "d").format("DD/MM/YYYY");
-        }
-    } else if (/^[\d]{2}\/[\d]{2}$/.test(dateArg)) {
-        convertedDate = `${dateArg}/${now.year()}`;
-    } else if (/^[\d]{2}\/[\d]{2}\/[\d]{4}$/.test(dateArg)) {
-        convertedDate = dateArg;
-    }
-
-    if (/^[\d]{2}:[\d]{2}$/g.test(timeArg)) {
-        convertedTime = timeArg;
-    } else {
-        convertedTime = "06:00";
-        isTimeInputted = false;
-    }
-
-    return { converted: `${convertedDate} ${convertedTime}`, isTimeInputted };
-}
-
 async function buildAbsoluteTimeReminder(message: discord.Message, args: string[]): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
@@ -399,8 +325,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     }
 
     const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const { converted, isTimeInputted } = convertAbsoluteTimeRawInput(args[1], args[2], now); 
-    const parsedDate = parseAbsoluteTime(converted);
+    const parsedDate = parseAbsoluteTime(args[1], args[2], now, utils.userTz());
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
@@ -408,7 +333,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     }
 
     const dateUtc = moment(parsedDate.date).utc().valueOf();
-    const text = args.slice(isTimeInputted ? 3 : 2).join(" ");
+    const text = args.slice(parsedDate.isTimeInputted ? 3 : 2).join(" ");
 
     if (text.length > 1000) {
         utils.send(message, `That message is way too long!`);
