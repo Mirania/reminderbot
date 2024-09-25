@@ -19,6 +19,7 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
+        .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
         .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
         .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.");
 
@@ -128,7 +129,7 @@ export async function list(message: discord.Message): Promise<void> {
         return;
     }
 
-    const now = moment().tz(utils.userTz());
+    const now = moment().tz(data.getTimezone());
 
     const categories: { name: string, ends?: moment.Moment, npAnnounced?: boolean, pAnnounced?: boolean }[] = [
         { name: "Today", ends: moment(now).add(1, "day").set("hour", 0).set("minute", 0) },
@@ -141,7 +142,7 @@ export async function list(message: discord.Message): Promise<void> {
         nonperiodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         npMsgText += "**Non-periodic reminders:**\n";
         nonperiodic.forEach(np => {
-            const next = moment.tz(np.timestamp, utils.userTz());
+            const next = moment.tz(np.timestamp, data.getTimezone());
             const relativeTime = utils.getRelativeTimeString(now, next);
             const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
             if (category && !category.npAnnounced) {
@@ -157,7 +158,7 @@ export async function list(message: discord.Message): Promise<void> {
         pMsgText += "**Periodic reminders:**\n";
         periodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         periodic.forEach(p => {
-            const next = moment.tz(p.timestamp, utils.userTz());
+            const next = moment.tz(p.timestamp, data.getTimezone());
             const relativeTime = utils.getRelativeTimeString(now, next);
             const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
             if (category && !category.pAnnounced) {
@@ -208,8 +209,8 @@ export function clear(message: discord.Message, args: string[]): void {
     }
 
     const deletedReminder = reminders[targetKey];
-    const now = moment().tz(utils.userTz());
-    const next = moment.tz(deletedReminder.timestamp, utils.userTz());
+    const now = moment().tz(data.getTimezone());
+    const next = moment.tz(deletedReminder.timestamp, data.getTimezone());
     const relativeTime = utils.getRelativeTimeString(now, next);
 
     delete reminders[targetKey];
@@ -241,6 +242,37 @@ export async function kill(message: discord.Message): Promise<void> {
 
 export const k = kill;
 
+export async function timezone(message: discord.Message, args: string[]): Promise<void> {
+    if (!utils.isOwner(message)) {
+        return;
+    }
+
+    const usage = `${utils.usage("timezone", "the timezone name")}\n` +
+        "The name can contain multiple words and doesn't need to perfectly match a Moment timezone.\n" +
+        "If there is no direct match, I'll try to infer a timezone with a similar name.";
+
+    if (args.length < 1) {
+        const current = `The current timezone is \`${data.getTimezone()}\`.\n` +
+            `The time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`
+
+        utils.send(message, `${current}\n\nTo set a timezone, you can type:\n${usage}`);
+        return;
+    }
+
+    const query = args.join("_").toLowerCase();
+    const match = utils.allTimezones().find(tz => tz.toLowerCase().includes(query));
+
+    if (!match) {
+        utils.send(message, "Could not find or partial match a timezone with that name.");
+        return;
+    }
+
+    await data.setTimezone(match);
+    utils.send(message, `Set your timezone to \`${data.getTimezone()}\`.\nThe time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`);
+}
+
+export const t = timezone;
+
 async function buildRelativeTimeReminder(message: discord.Message, args: string[], isPeriodic: boolean, echoReminder: boolean): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
@@ -257,8 +289,8 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseRelativeTime(now, args[1], utils.userTz());
+    const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
+    const parsedDate = parseRelativeTime(now, args[1], data.getTimezone());
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
@@ -324,8 +356,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         return;
     }
 
-    const now = moment().tz(utils.userTz()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseAbsoluteTime(args[1], args[2], now, utils.userTz());
+    const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
+    const parsedDate = parseAbsoluteTime(args[1], args[2], now, data.getTimezone());
 
     if (!parsedDate.valid) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);

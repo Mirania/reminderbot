@@ -17,6 +17,8 @@ let lastReminderMessage: string | undefined = undefined;
 let latestId: number = -1;
 const maxId: number = 5000;
 
+let timezone: string;
+
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
     await loadImmediate();
@@ -29,6 +31,7 @@ export async function loadImmediate(): Promise<void> {
     reminders = await db.get("reminders/") ?? {};
     lastReminderMessage = await db.get("reminderconfig/last/");
     latestId = await db.get("reminderconfig/latestId");
+    timezone = await db.get("reminderconfig/timezone") ?? process.env.OWNER_TIMEZONE;
 }
 
 /**
@@ -65,6 +68,15 @@ export async function setLastReminderMessage(message: string): Promise<void> {
 
 export function getLastReminderMessage(): string | undefined {
     return lastReminderMessage;
+}
+
+export async function setTimezone(tz: string): Promise<void> {
+    timezone = tz;
+    await db.post("reminderconfig/timezone", tz);
+}
+
+export function getTimezone(): string {
+    return timezone;
 }
 
 export async function generateId(): Promise<number> {

@@ -1,5 +1,6 @@
 import * as discord from 'discord.js';
 import * as moment from 'moment-timezone';
+import { getTimezone } from './data';
 
 /**
  * Sends a discord message to the channel determined by `context`. Catches and logs the event if it fails.
@@ -104,18 +105,20 @@ export function seconds(amount: number): number {
     return amount * 1000;
 }
 
+const timezones = moment.tz.names();
+
 /**
- * Gets the user's timezone.
+ * Gets all valid timezones.
  */
-export function userTz(): string {
-    return process.env.OWNER_TIMEZONE.replace(/ /g, "_");
+export function allTimezones(): string[] {
+    return timezones;
 }
 
 /**
  * Prints a message to the console.
  */
 export function log(text: string): void {
-    console.log(`[${moment().tz(userTz()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
+    console.log(`[${moment().tz(getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
 }
 
 /**
@@ -135,7 +138,7 @@ export function serverMemberName(member: discord.GuildMember): string {
 }
 
 export function getRelativeTimeString(past: moment.Moment, future: moment.Moment) {
-    const a = moment(past).tz(userTz()), b = moment(future).tz(userTz());
+    const a = moment(past).tz(getTimezone()), b = moment(future).tz(getTimezone());
 
     const monthDiff = b.diff(a, "months");
     if (monthDiff > 0) {
