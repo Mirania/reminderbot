@@ -76,15 +76,18 @@ function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefine
             case "fri": case "friday": targetWeekday = 5; break;
             case "sat": case "saturday": targetWeekday = 6; break;
             case "today": targetWeekday = -2; break;
+            case "tmrw": case "tomorrow": targetWeekday = -3; break;
             default: targetWeekday = -1;
         }
         if (targetWeekday === -1) {
             convertedDate = "invalid";
         } else if (targetWeekday === -2) {
             convertedDate = moment(now).format("DD/MM/YYYY");
+        } else if (targetWeekday === -3) {
+            convertedDate = moment(now).add(1, "day").format("DD/MM/YYYY");
         } else {
             const currentWeekday = now.weekday();
-            convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "d").format("DD/MM/YYYY");
+            convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "day").format("DD/MM/YYYY");
         }
     } else if (shortDateRegex.test(dateArg)) {
         // 06/06 or 2/7

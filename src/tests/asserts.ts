@@ -75,6 +75,8 @@ assertAbsoluteTime({ valid: true, date: momentFrom("01/01/2025 11:05"), isTimeIn
     parseAbsoluteTime("today", "11:05", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("01/01/2025 06:00"), isTimeInputted: false },
     parseAbsoluteTime("today", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("02/01/2025 06:00"), isTimeInputted: false },
+    parseAbsoluteTime("tmrw", undefined, now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("03/01/2025 06:00"), isTimeInputted: false },
     parseAbsoluteTime("fri", undefined, now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("02/02/2025 07:15"), isTimeInputted: true },
