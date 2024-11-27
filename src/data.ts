@@ -41,6 +41,10 @@ export async function saveImmediate(): Promise<void> {
     await db.post("reminders/", reminders);
 }
 
+export async function updateReminder(key: string, reminderFields: Partial<Reminder>): Promise<void> {
+    return await db.update(`reminders/${key}`, reminderFields);
+}
+
 export async function saveReminder(reminder: Reminder): Promise<string> {
     return await db.push("reminders/", reminder);
 }

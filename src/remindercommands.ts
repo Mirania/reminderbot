@@ -16,6 +16,7 @@ export function help(message: discord.Message): void {
         .setTitle("Here's what I can do:")
         .addField(`${prefix}r / ${prefix}reminder`, "Set a reminder.")
         .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
+        .addField(`${prefix}a / ${prefix}add / ${prefix}append`, "Append some text to an already existing reminder.")
         .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
@@ -111,6 +112,47 @@ export function delay(message: discord.Message, args: string[]): void {
 
 export const d = delay;
 
+export function append(message: discord.Message, args: string[]): void {
+    if (!utils.isOwner(message)) {
+        return;
+    }
+
+    if (args.length < 2) {
+        const usage = `${utils.usage("append", "id text to append")}\n` +
+            "The 'id' should be a number; it should be the id of some reminder.\n" +
+            `Use ${process.env.COMMAND}list to check all ids.`;
+
+        utils.send(message, `To append to a reminder, you can type:\n${usage}`);
+        return;
+    }
+
+    const reminders = data.getReminders();
+
+    let targetKey: string;
+    for (const key in reminders) {
+        if (reminders[key].id != null && reminders[key].id === Number(args[0])) {
+            targetKey = key;
+        }
+    }
+
+    if (!targetKey) {
+        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`);
+        return;
+    }
+
+    const updatedReminder = reminders[targetKey];
+    const now = moment().tz(data.getTimezone());
+    const next = moment.tz(updatedReminder.timestamp, data.getTimezone());
+    const relativeTime = utils.getRelativeTimeString(now, next);
+
+    updatedReminder.text += `\n┕ ${args.slice(1).join(" ")}`;
+    data.updateReminder(targetKey, { text: updatedReminder.text });
+    utils.send(message, `Updated the reminder '${updatedReminder.text.replace(/\n/g, " ")}' which will happen on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
+}
+
+export const a = append;
+export const add = append;
+
 export async function list(message: discord.Message): Promise<void> {
     if (!utils.isOwner(message)) {
         return;
@@ -149,7 +191,7 @@ export async function list(message: discord.Message): Promise<void> {
                 category.npAnnounced = true;
                 npMsgText += `============== ${category.name} ==============\n`;
             }
-            npMsgText += `➜ \`${np.id}\`: '${np.text}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
+            npMsgText += `➜ \`${np.id}\`: '${np.text.replace(/\n/g, " ")}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
         });
     }
 
@@ -165,7 +207,7 @@ export async function list(message: discord.Message): Promise<void> {
                 category.pAnnounced = true;
                 pMsgText += `============== ${category.name} ==============\n`;
             }
-            pMsgText += `➜ \`${p.id}\`: '${p.text}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
+            pMsgText += `➜ \`${p.id}\`: '${p.text.replace(/\n/g, " ")}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
         });
     }
 
@@ -215,7 +257,7 @@ export function clear(message: discord.Message, args: string[]): void {
 
     delete reminders[targetKey];
     data.deleteReminder(targetKey);
-    utils.send(message, `Deleted the reminder '${deletedReminder.text}' which would've happened on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
+    utils.send(message, `Deleted the reminder '${deletedReminder.text.replace(/\n/g, " ")}' which would've happened on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
 }
 
 export const c = clear;
@@ -331,7 +373,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     if (isPeriodic) {
         utils.send(message, `Your reminder with id \`${id}\` will repeat every ${reminder.rawTime}!`);
     } else if (echoReminder) {
-        utils.send(message, `Your reminder with id \`${id}\` '${reminder.text}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
+        utils.send(message, `Your reminder with id \`${id}\` '${reminder.text.replace(/\n/g, " ")}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     } else {
         utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     }
