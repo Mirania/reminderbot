@@ -129,6 +129,13 @@ export function pad(value: number): string {
 }
 
 /**
+ * Clamps a number.
+ */
+export function clamp(min: number, value: number, max: number): number {
+    return value < min ? min : value > max ? max : value; 
+}
+
+/**
  * Returns `user#1234 (nickname)` with appropriate fallbacks in case such information is missing.
  */
 export function serverMemberName(member: discord.GuildMember): string {

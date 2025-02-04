@@ -153,14 +153,23 @@ export function append(message: discord.Message, args: string[]): void {
 export const a = append;
 export const add = append;
 
-export async function list(message: discord.Message): Promise<void> {
+export async function list(message: discord.Message, args: string[]): Promise<void> {
     if (!utils.isOwner(message)) {
+        return;
+    }
+
+    if (args.length > 0 && isNaN(parseInt(args[0]))) {
+        const usage = `${utils.usage("list", "page")}\n` +
+            "The 'page', if provided, should be a number.";
+
+        utils.send(message, `To list your reminders, you can type:\n${usage}`);
         return;
     }
 
     const reminders = data.getReminders();
     const periodic: data.Reminder[] = [];
     const nonperiodic: data.Reminder[] = [];
+    const requestedPage: number = args[0] != null ? parseInt(args[0]) : 1;
 
     for (const key in reminders) {
         reminders[key].isPeriodic ? periodic.push(reminders[key]) : nonperiodic.push(reminders[key]);
@@ -179,25 +188,23 @@ export async function list(message: discord.Message): Promise<void> {
         { name: "Later" }
     ];
 
-    let npMsgText = "";
+    let npMsgText: string[] = [];
     if (nonperiodic.length > 0) {
         nonperiodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
-        npMsgText += "**Non-periodic reminders:**\n";
         nonperiodic.forEach(np => {
             const next = moment.tz(np.timestamp, data.getTimezone());
             const relativeTime = utils.getRelativeTimeString(now, next);
             const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
             if (category && !category.npAnnounced) {
                 category.npAnnounced = true;
-                npMsgText += `============== ${category.name} ==============\n`;
+                npMsgText.push(`============== ${category.name} ==============\n`);
             }
-            npMsgText += `➜ \`${np.id}\`: '${np.text.replace(/\n/g, " ")}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`;
+            npMsgText.push(`➜ \`${np.id}\`: '${np.text.replace(/\n/g, " ")}' at ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`\n`);
         });
     }
 
-    let pMsgText = "";
+    let pMsgText: string[] = [];
     if (periodic.length > 0) {
-        pMsgText += "**Periodic reminders:**\n";
         periodic.sort((r1, r2) => r1.timestamp - r2.timestamp);
         periodic.forEach(p => {
             const next = moment.tz(p.timestamp, data.getTimezone());
@@ -205,22 +212,55 @@ export async function list(message: discord.Message): Promise<void> {
             const category = categories.find(cat => !cat.ends || cat.ends.isAfter(next));
             if (category && !category.pAnnounced) {
                 category.pAnnounced = true;
-                pMsgText += `============== ${category.name} ==============\n`;
+                pMsgText.push(`============== ${category.name} ==============\n`);
             }
-            pMsgText += `➜ \`${p.id}\`: '${p.text.replace(/\n/g, " ")}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`;
+            pMsgText.push(`➜ \`${p.id}\`: '${p.text.replace(/\n/g, " ")}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`);
         });
     }
 
     if (npMsgText.length > 0) {
-        await utils.send(message, npMsgText.length > 1990 ? npMsgText.slice(0, 1990) + " (...)" : npMsgText);
+        const pages = paginate(npMsgText);
+        const targetPage = utils.clamp(1, requestedPage, pages.length);
+
+        let paginatedText = `**Non-periodic reminders${pages.length > 1 ? ` (${targetPage}/${pages.length})` : ""}:**\n`;
+        paginatedText += pages[targetPage - 1];
+
+        await utils.send(message, paginatedText);
     }
     if (pMsgText.length > 0) {
-        pMsgText = "­\n" + pMsgText;
-        await utils.send(message, pMsgText.length > 1990 ? pMsgText.slice(0, 1990) + " (...)" : pMsgText);
+        const pages = paginate(pMsgText);
+        const targetPage = utils.clamp(1, requestedPage, pages.length);
+
+        let paginatedText = `­\n**Periodic reminders${pages.length > 1 ? ` (${targetPage}/${pages.length})` : ""}:**\n`;
+        paginatedText += pages[targetPage - 1];
+
+        await utils.send(message, paginatedText);
     }
 }
 
 export const l = list;
+
+function paginate(lines: string[]) {
+    let startLine = 0, charsSeen = 0;
+    const pages: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].length > 1950 ? `${lines[i].slice(0, 1940)} (...)` : lines[i];
+
+        if (charsSeen + line.length > 1950) {
+            pages.push(lines.slice(startLine, i).join(""));
+            startLine = i;
+            charsSeen = 0;
+        }
+        charsSeen += line.length;
+
+        if (i === lines.length - 1) {
+            pages.push(lines.slice(startLine, lines.length).join(""));
+        }
+    }
+
+    return pages;
+}
 
 export function clear(message: discord.Message, args: string[]): void {
     if (!utils.isOwner(message)) {
