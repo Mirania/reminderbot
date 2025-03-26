@@ -89,24 +89,28 @@ export function delay(message: discord.Message, args: string[]): void {
     }
 
     const usage = `${utils.usage("delay", "date")}\n` +
-        "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.";
+        "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
+        "You can also specify the id of the reminder to delay, like 1234 1d10h20m.";
 
-    if (args.length < 1) {
+    const targetId: number | null = (args.length > 0 && /^[0-9]+$/.test(args[0])) ? parseInt(args[0]) : null;
+
+    if (args.length < (targetId != null ? 2 : 1)) {
         utils.send(message, `To delay a reminder, you can type:\n${usage}`);
         return;
     }
 
-    const toDelay = data.getLastReminderMessage();
+    const toDelay = data.getLatestReminderMessage(targetId);
 
     if (!toDelay) {
-        utils.send(message, "There is no reminder to delay.");
+        utils.send(message, "There is no such reminder to delay.");
         return;
     }
 
-    if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
-        buildAbsoluteTimeReminder(message, ["at", ...args, toDelay]);
+    const timeArgs = targetId != null ? args.slice(1) : args;
+    if (/^[A-Za-z]+$/.test(timeArgs[0]) || timeArgs[0].includes("/")) {
+        buildAbsoluteTimeReminder(message, ["at", ...timeArgs, toDelay.message]);
     } else {
-        buildRelativeTimeReminder(message, ["in", ...args, toDelay], false, false);
+        buildRelativeTimeReminder(message, ["in", ...timeArgs, toDelay.message], false, false);
     }
 }
 

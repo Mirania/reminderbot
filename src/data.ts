@@ -12,10 +12,11 @@ export type Reminder = {
 }
 
 let reminders: { [key: string]: Reminder } = {};
-let lastReminderMessage: string | undefined = undefined;
+let latestReminders: { id: number, message: string }[] = [];
 
 let latestId: number = -1;
 const maxId: number = 5000;
+const maxLatestRemindersLength = 20;
 
 let timezone: string;
 
@@ -29,7 +30,7 @@ export async function init(): Promise<void> {
  */
 export async function loadImmediate(): Promise<void> {
     reminders = await db.get("reminders/") ?? {};
-    lastReminderMessage = await db.get("reminderconfig/last/");
+    latestReminders = await db.get("reminderconfig/latest") ?? [];
     latestId = await db.get("reminderconfig/latestId");
     timezone = await db.get("reminderconfig/timezone") ?? process.env.OWNER_TIMEZONE;
 }
@@ -65,13 +66,16 @@ export async function setReminder(reminder: Reminder): Promise<void> {
     reminders[await saveReminder(reminder)] = reminder;
 }
 
-export async function setLastReminderMessage(message: string): Promise<void> {
-    lastReminderMessage = message;
-    await db.post("reminderconfig/last/", message);
+export async function setLatestReminderMessage(id: number, message: string): Promise<void> {
+    latestReminders.push({id, message});
+    while (latestReminders.length > maxLatestRemindersLength) {
+        latestReminders.shift();
+    }
+    await db.post("reminderconfig/latest", latestReminders);
 }
 
-export function getLastReminderMessage(): string | undefined {
-    return lastReminderMessage;
+export function getLatestReminderMessage(id: number | null): { id: number, message: string } | undefined {
+    return id != null ? latestReminders.find(r => r.id === id) : latestReminders[latestReminders.length - 1];
 }
 
 export async function setTimezone(tz: string): Promise<void> {
