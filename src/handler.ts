@@ -2,13 +2,12 @@ import * as discord from 'discord.js';
 import * as utils from './utils';
 import * as reminders from './remindercommands';
 import * as meta from './metacommands';
-import * as extra from './extras/extracommands';
 import * as events from './events';
 import { setInterval } from 'timers';
 
 type CommandFunction = (message: discord.Message, args?: string[]) => void | Promise<void>;
 
-const commandList: { [name: string]: CommandFunction } = { ...reminders, ...meta, ...extra};
+const commandList: { [name: string]: CommandFunction } = { ...reminders, ...meta};
 const reminderEventInterval = utils.seconds(45);
 const checkBatteryInterval = utils.minutes(60);
 
