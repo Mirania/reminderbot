@@ -36,6 +36,22 @@ export function sendEmbed(
 }
 
 /**
+ * Sends a file to the same channel as `context`. Catches and logs the event if it fails.
+ */
+export function sendFile(
+    context: discord.Message,
+    file: discord.MessageAttachment
+): Promise<discord.Message> {
+    return context.channel.send({ files: [file] }).catch((reason: string) => {
+        let location = context.channel instanceof discord.DMChannel ?
+            `${context.author.username}'s DMs` : `#${context.channel.name}`;
+        log(`[!] Error sending message to ${location}. ${reason}`);
+        return context;
+    }
+    ) as Promise<discord.Message>;
+}
+
+/**
  * Finds a guild by id, returning `undefined` if none could be found.
  */
 export async function getIfExists(manager: discord.GuildManager, id: string): Promise<discord.Guild>;

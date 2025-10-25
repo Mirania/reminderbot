@@ -92,3 +92,7 @@ export async function generateId(): Promise<number> {
     await db.post("reminderconfig/latestId", newId);
     return newId;
 }
+
+export function getLatestId(): number {
+    return latestId;
+}

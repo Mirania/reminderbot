@@ -48,14 +48,14 @@ export function reminder(message: discord.Message, args: string[]): void {
     }
 
     if (args[0] === "in") {
-        buildRelativeTimeReminder(message, args, false, false);
+        buildRelativeTimeReminder(message, args, null, false);
     } else if (args[0] === "at") {
-        buildAbsoluteTimeReminder(message, args);
+        buildAbsoluteTimeReminder(message, args, null);
     } else if (args[0]) {
         if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
-            buildAbsoluteTimeReminder(message, ["at", ...args]);
+            buildAbsoluteTimeReminder(message, ["at", ...args], null);
         } else {
-            buildRelativeTimeReminder(message, ["in", ...args], false, false);
+            buildRelativeTimeReminder(message, ["in", ...args], null, false);
         }
     } else {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
@@ -70,15 +70,42 @@ export function periodicreminder(message: discord.Message, args: string[]): void
         return;
     }
 
-    if (args.length < 2) {
-        const usage = `${utils.usage("periodicreminder", "date message")}\n` +
-            "The 'date' should be something like 1d10h20m.";
+    const usage = `${utils.usage("periodicreminder", "in/at date repeat periodicity message")}\n` +
+        "The 'date' should be something like 1d10h20m or 01/01/2025 01:00. See the 'reminder' command for more examples.\n" +
+        "'repeat' is a keyword you should directly include after the date.\n" +
+        "The 'periodicity' should be a relative time like 1d10h20m.\n" +
+        "Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
+    const repeatArgIndex = args.findIndex(arg => arg === "repeat");
+
+    if (args.length < 4 || repeatArgIndex === -1) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`);
         return;
     }
 
-    buildRelativeTimeReminder(message, [null, ...args], true, false);
+    const dateArgs = args.slice(0, repeatArgIndex);
+    const periodicity = args[repeatArgIndex + 1];
+    const text = args.slice(repeatArgIndex + 2);
+
+    if (dateArgs.length < 1 || !periodicity || text.length < 1) {
+        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        return;
+    }
+
+    if (args[0] === "in") {
+        buildRelativeTimeReminder(message, [...dateArgs, ...text], periodicity, false);
+    } else if (args[0] === "at") {
+        buildAbsoluteTimeReminder(message, [...dateArgs, ...text], periodicity);
+    } else if (args[0]) {
+        if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
+            buildAbsoluteTimeReminder(message, ["at", ...dateArgs, ...text], periodicity);
+        } else {
+            buildRelativeTimeReminder(message, ["in", ...dateArgs, ...text], periodicity, false);
+        }
+    } else {
+        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        return;
+    }
 }
 
 export const pr = periodicreminder;
@@ -108,9 +135,9 @@ export function delay(message: discord.Message, args: string[]): void {
 
     const timeArgs = targetId != null ? args.slice(1) : args;
     if (/^[A-Za-z]+$/.test(timeArgs[0]) || timeArgs[0].includes("/")) {
-        buildAbsoluteTimeReminder(message, ["at", ...timeArgs, toDelay.message]);
+        buildAbsoluteTimeReminder(message, ["at", ...timeArgs, toDelay.message], null);
     } else {
-        buildRelativeTimeReminder(message, ["in", ...timeArgs, toDelay.message], false, false);
+        buildRelativeTimeReminder(message, ["in", ...timeArgs, toDelay.message], null, false);
     }
 }
 
@@ -218,7 +245,7 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
                 category.pAnnounced = true;
                 pMsgText.push(`============== ${category.name} ==============\n`);
             }
-            pMsgText.push(`➜ \`${p.id}\`: '${p.text.replace(/\n/g, " ")}' every ${p.rawTime} \`(next up in ${relativeTime})\`\n`);
+            pMsgText.push(`➜ \`${p.id}\`: '${p.text.replace(/\n/g, " ")}' every **${p.rawTime}** \`(next up in ${relativeTime})\`\n`);
         });
     }
 
@@ -359,7 +386,7 @@ export async function timezone(message: discord.Message, args: string[]): Promis
 
 export const t = timezone;
 
-async function buildRelativeTimeReminder(message: discord.Message, args: string[], isPeriodic: boolean, echoReminder: boolean): Promise<void> {
+async function buildRelativeTimeReminder(message: discord.Message, args: string[], periodicity: string | null, echoReminder: boolean): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
         return;
@@ -375,10 +402,12 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         return;
     }
 
+    const isPeriodic = periodicity != null;
     const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
     const parsedDate = parseRelativeTime(now, args[1], data.getTimezone());
+    const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, periodicity, data.getTimezone()) : null;
 
-    if (!parsedDate.valid) {
+    if (!parsedDate.valid || (isPeriodic && !parsedPeriodicity.valid)) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
         return;
     }
@@ -408,14 +437,14 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     };
 
     if (isPeriodic) {
-        reminder.rawTime = args[1];
-        reminder.timeValues = parsedDate.timeValues;
+        reminder.rawTime = periodicity;
+        reminder.timeValues = parsedPeriodicity.timeValues;
     }
 
     await data.setReminder(reminder);
 
     if (isPeriodic) {
-        utils.send(message, `Your reminder with id \`${id}\` will repeat every ${reminder.rawTime}!`);
+        utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")} and will repeat every **${reminder.rawTime}**!`);
     } else if (echoReminder) {
         utils.send(message, `Your reminder with id \`${id}\` '${reminder.text.replace(/\n/g, " ")}' has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}!`);
     } else {
@@ -423,7 +452,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     }
 }
 
-async function buildAbsoluteTimeReminder(message: discord.Message, args: string[]): Promise<void> {
+async function buildAbsoluteTimeReminder(message: discord.Message, args: string[], periodicity: string | null): Promise<void> {
     if (!message.guild) {
         utils.send(message, "Please use this command in a server instead.");
         return;
@@ -442,10 +471,12 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         return;
     }
 
+    const isPeriodic = periodicity != null;
     const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
     const parsedDate = parseAbsoluteTime(args[1], args[2], now, data.getTimezone());
+    const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, periodicity, data.getTimezone()) : null;
 
-    if (!parsedDate.valid) {
+    if (!parsedDate.valid || (isPeriodic && !parsedPeriodicity.valid)) {
         utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
         return;
     }
@@ -466,7 +497,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const id = await data.generateId();
 
     const reminder: data.Reminder = {
-        isPeriodic: false,
+        isPeriodic,
         text,
         timestamp: dateUtc,
         authorId: message.author.id,
@@ -474,8 +505,17 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         id
     };
 
+    if (isPeriodic) {
+        reminder.rawTime = periodicity;
+        reminder.timeValues = parsedPeriodicity.timeValues;
+    }
+
     await data.setReminder(reminder);
 
     const relativeTime = utils.getRelativeTimeString(now, parsedDate.date);
-    utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}! \`(in ${relativeTime})\``);
+    if (isPeriodic) {
+        utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\` and will repeat every **${reminder.rawTime}**!`);
+    } else {
+        utils.send(message, `Your reminder with id \`${id}\` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}! \`(in ${relativeTime})\``);
+    }
 }

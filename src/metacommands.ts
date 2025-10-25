@@ -2,6 +2,7 @@ import * as utils from './utils';
 import * as discord from 'discord.js';
 import * as data from "./data";
 import * as events from "./events";
+import * as moment from 'moment-timezone';
 
 export function checkreminders(message: discord.Message): void {
     if (!utils.isOwner(message)) {
@@ -31,6 +32,24 @@ export function save(message: discord.Message): void {
 
     data.saveImmediate();
     utils.send(message, "'save' done.");
+}
+
+export function backup(message: discord.Message): void {
+    if (!utils.isOwner(message)) {
+        utils.send(message, "You must be a bot owner to use this command!");
+        return;
+    }
+
+    const allData = {
+        reminders: data.getReminders(),
+        config: {
+            tz: data.getTimezone(),
+            latestId: data.getLatestId()
+        }
+    };
+
+    const file = new discord.MessageAttachment(Buffer.from(JSON.stringify(allData, null, 4)), `backup ${moment().format("YYYY_MM_DD HH_mm")}.json`);
+    utils.sendFile(message, file);
 }
 
 export function invite(message: discord.Message): void {
