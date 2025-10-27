@@ -92,7 +92,9 @@ function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefine
     } else if (shortDateRegex.test(dateArg)) {
         // 06/06 or 2/7
         const match = dateArg.match(shortDateRegex);
-        convertedDate = `${zeroPad(match[1])}/${zeroPad(match[2])}/${now.year()}`;
+        const day = Number(match[1]), month = Number(match[2]);
+        const year = (month > now.month() + 1 || (month === now.month() + 1 && day > now.date())) ? now.year() : now.year() + 1;
+        convertedDate = `${zeroPad(day)}/${zeroPad(month)}/${year}`;
     } else if (longDateRegex.test(dateArg)) {
         // 04/06/2025 or 7/6/2025
         const match = dateArg.match(longDateRegex);
