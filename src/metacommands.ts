@@ -34,6 +34,16 @@ export function save(message: discord.Message): void {
     utils.send(message, "'save' done.");
 }
 
+export function channel(message: discord.Message, args: string[]): void {
+    if (!utils.isOwner(message)) {
+        utils.send(message, "You must be a bot owner to use this command!");
+        return;
+    }
+
+    data.setPreferredChannel(args[0]);
+    utils.send(message, `Set pings channel to ${args[0] ?? 'mirror where each reminder is set'}.`);
+}
+
 export function backup(message: discord.Message): void {
     if (!utils.isOwner(message)) {
         utils.send(message, "You must be a bot owner to use this command!");

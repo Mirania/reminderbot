@@ -7,6 +7,7 @@ export type Reminder = {
     authorId: string, // user to be pinged
     channelId: string, // destination channel
     id: number,
+    times?: number; // limits the renewal of periodic reminders
     rawTime?: string, // used for periodic reminders
     timeValues?: { [unit: string]: number } // used to renew a periodic reminder
 }
@@ -19,6 +20,7 @@ const maxId: number = 5000;
 const maxLatestRemindersLength = 20;
 
 let timezone: string;
+let preferredChannel: string;
 
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
@@ -33,6 +35,7 @@ export async function loadImmediate(): Promise<void> {
     latestReminders = await db.get("reminderconfig/latest") ?? [];
     latestId = await db.get("reminderconfig/latestId");
     timezone = await db.get("reminderconfig/timezone") ?? process.env.OWNER_TIMEZONE;
+    preferredChannel = await db.get("reminderconfig/channel");
 }
 
 /**
@@ -85,6 +88,15 @@ export async function setTimezone(tz: string): Promise<void> {
 
 export function getTimezone(): string {
     return timezone;
+}
+
+export async function setPreferredChannel(channel: string | null | undefined): Promise<void> {
+    preferredChannel = channel;
+    await db.post("reminderconfig/channel", channel ?? null);
+}
+
+export function getPreferredChannel(): string | null {
+    return preferredChannel;
 }
 
 export async function generateId(): Promise<number> {

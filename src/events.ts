@@ -7,6 +7,7 @@ import { getBatteryStatus } from './battery';
 
 export async function announceReminders(): Promise<void> {
     const reminders = data.getReminders();
+    const preferredChannel = data.getPreferredChannel();
     const nowUtc = moment().tz(data.getTimezone()).utc().valueOf();
     const bot = self();
 
@@ -15,7 +16,12 @@ export async function announceReminders(): Promise<void> {
 
         if (reminder.timestamp > nowUtc) continue;
 
-        const channel = await utils.getIfExists(bot.channels, reminder.channelId) as discord.TextChannel;
+        let channel = await utils.getIfExists(bot.channels, preferredChannel ?? reminder.channelId) as discord.TextChannel;
+
+        if (!channel && preferredChannel) {
+            // fallback, try to mirror
+            channel = await utils.getIfExists(bot.channels, reminder.channelId) as discord.TextChannel;
+        }
 
         if (!channel) {
             // this can't be announced anymore
@@ -25,7 +31,7 @@ export async function announceReminders(): Promise<void> {
 
         await utils.send(channel, `\`${reminder.id}\` ${utils.mentionUser(reminder.authorId)} says: ${reminder.text}`);
         await data.setLatestReminderMessage(reminder.id, reminder.text);
-        reminder.isPeriodic ? renewReminder(reminder) : delete reminders[key];
+        (reminder.isPeriodic && (reminder.times == null || reminder.times > 1)) ? renewReminder(reminder) : delete reminders[key];
     }
 
     data.saveReminders(reminders);
@@ -48,6 +54,10 @@ function renewReminder(reminder: data.Reminder): void {
 
     date.subtract(5, "second");
     reminder.timestamp = moment(date).utc().valueOf();
+
+    if (reminder.times != null) {
+        reminder.times--;
+    }
 }
 
 const batteryLowThreshold = 15;
