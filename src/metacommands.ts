@@ -54,7 +54,8 @@ export function backup(message: discord.Message): void {
         reminders: data.getReminders(),
         config: {
             tz: data.getTimezone(),
-            latestId: data.getLatestId()
+            latestId: data.getLatestId(),
+            channel: data.getPreferredChannel()
         }
     };
 
