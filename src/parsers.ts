@@ -1,16 +1,21 @@
 import * as moment from 'moment-timezone';
 
 export type RelativeTime = { 
-    valid: boolean, 
-    date?: moment.Moment, 
-    timeValues?: { [unit: string]: number } 
+    valid: false 
+} | { 
+    valid: true, 
+    date: moment.Moment, 
+    timeValues: { [unit: string]: number } 
 };
 
 export type AbsoluteTime = {
-    valid: boolean, 
-    date?: moment.Moment, 
-    isTimeInputted?: boolean
-}
+    valid: false,
+    isTimeInputted: boolean
+} | {
+    valid: true, 
+    date: moment.Moment, 
+    isTimeInputted: boolean
+};
 
 export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz: string): RelativeTime {
     const tokens = relativeTime.match(/[0-9]+|[A-Za-z]+/g) ?? [,];
@@ -48,7 +53,7 @@ export function parseAbsoluteTime(dateArg: string, timeArg: string | undefined, 
     const { converted, isTimeInputted } = convertAbsoluteTimeRawInput(dateArg, timeArg, now);
 
     if (!/[\d]{2}\/[\d]{2}\/[\d]{4} [\d]{2}:[\d]{2}/g.test(converted)) {
-        return { valid: false };
+        return { valid: false, isTimeInputted };
     }
 
     const date = moment.tz(converted, "DD/MM/YYYY HH:mm", tz);

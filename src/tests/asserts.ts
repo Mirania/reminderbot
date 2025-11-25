@@ -8,20 +8,32 @@ function momentFrom(string: string) {
 }
 
 function assertRelativeTime(a: RelativeTime, b: RelativeTime) {
-    let aKeys: string[], bKeys: string[];
-    if (a.valid !== b.valid || 
-        a.date?.valueOf() !== b.date?.valueOf() || 
-        (aKeys = Object.keys(a.timeValues ?? {})).length !== (bKeys = Object.keys(b.timeValues ?? {})).length ||
-        aKeys.some(key => a.timeValues[key] !== b.timeValues[key])) {
-            throw new Error(`relative time assert failed for:\n(expected) ${JSON.stringify(a)}\n(actual)   ${JSON.stringify(b)}`);
+    const error = new Error(`relative time assert failed for:\n(expected) ${JSON.stringify(a)}\n(actual)   ${JSON.stringify(b)}`);
+
+    if (a.valid !== b.valid) {
+        throw error;
+    }
+
+    if (a.valid && b.valid) {
+        const aKeys = Object.keys(a.timeValues);
+        const bKeys = Object.keys(b.timeValues);
+        if (a.date.valueOf() !== b.date.valueOf() || aKeys.length !== bKeys.length || aKeys.some(key => a.timeValues[key] !== b.timeValues[key])) {
+            throw error;
+        }
     }
 }
 
 function assertAbsoluteTime(a: AbsoluteTime, b: AbsoluteTime) {
-    if (a.valid !== b.valid ||
-        a.date?.valueOf() !== b.date?.valueOf() ||
-        (a.isTimeInputted !== b.isTimeInputted)) {
-            throw new Error(`absolute time assert failed for:\n(expected) ${JSON.stringify(a)}\n(actual)   ${JSON.stringify(b)}`);
+    const error = new Error(`absolute time assert failed for:\n(expected) ${JSON.stringify(a)}\n(actual)   ${JSON.stringify(b)}`);
+
+    if (a.valid !== b.valid || a.isTimeInputted !== b.isTimeInputted) {
+        throw error;
+    }
+
+    if (a.valid && b.valid) {
+        if (a.date.valueOf() !== b.date.valueOf()) {
+            throw error;
+        }
     }
 }
 
@@ -39,8 +51,9 @@ assertRelativeTime({ valid: true, date: momentFrom("05/02/2025 02:01"), timeValu
 assertRelativeTime({ valid: true, date: momentFrom("22/03/2028 12:36"), timeValues: {"y": 3, "w": 2, "mo": 1, "d": 6, "h": 12, "m": 36} }, 
         parseRelativeTime(now, "3y2w1mo6d12h36m", tz));
 
-assertAbsoluteTime({ valid: false }, parseAbsoluteTime("abcd", undefined, now, tz));
-assertAbsoluteTime({ valid: false }, parseAbsoluteTime("abcd", "23", now, tz));
+assertAbsoluteTime({ valid: false, isTimeInputted: false }, parseAbsoluteTime("abcd", undefined, now, tz));
+assertAbsoluteTime({ valid: false, isTimeInputted: false }, parseAbsoluteTime("abcd", "23", now, tz));
+assertAbsoluteTime({ valid: false, isTimeInputted: true }, parseAbsoluteTime("abcd", "23h", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("02/02/2026 17:06"), isTimeInputted: true }, 
         parseAbsoluteTime("02/02/2026", "17:06", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("02/06/2026 17:06"), isTimeInputted: true },

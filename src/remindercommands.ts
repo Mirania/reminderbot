@@ -79,7 +79,7 @@ export function periodicreminder(message: discord.Message, args: string[]): void
     }
 
     const usage = `${utils.usage("periodicreminder", "times in/at date repeat periodicity message")}\n` +
-        "The 'times' is **optional** (not provided = renew the reminder forever) and should be something like 14x.\n" +
+        "The 'times' is **optional** (not provided = renew the reminder forever) and should be something like 8 or 15x.\n" +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00. See the 'reminder' command for more examples.\n" +
         "'repeat' is a keyword you should directly include after the date.\n" +
         "The 'periodicity' should be a relative time like 1d10h20m.\n" +
@@ -88,18 +88,18 @@ export function periodicreminder(message: discord.Message, args: string[]): void
     const repeatArgIndex = args.findIndex(arg => arg === "repeat");
 
     if (args.length < 4 || repeatArgIndex === -1) {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
         return;
     }
 
-    const times = /^\d+x$/.test(args[0]) ? args[0] : null;
+    const times = /^\d+(x)?$/.test(args[0]) ? args[0] : null;
     const dateArgStartIndex = times ? 1 : 0;
     const dateArgs = args.slice(dateArgStartIndex, repeatArgIndex);
     const periodicity = args[repeatArgIndex + 1];
     const text = args.slice(repeatArgIndex + 2);
 
     if (dateArgs.length < 1 || !periodicity || text.length < 1) {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
         return;
     }
 
@@ -420,7 +420,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         "You can also omit the `in`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
         return;
     }
 
@@ -430,13 +430,18 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
-    if (!parsedDate.valid || (isPeriodic && !parsedPeriodicity.valid)) {
-        utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
+    if (!parsedDate.valid) {
+        utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`);
+        return;
+    }
+
+    if (isPeriodic && !parsedPeriodicity.valid) {
+        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`);
         return;
     }
 
     if (isPeriodic && settings.times && (isNaN(parsedTimes) || parsedTimes < 2)) {
-        utils.send(message, `The amount of times that this will be announced is invalid or less than 2.`);
+        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`);
         return;
     }
 
@@ -444,7 +449,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const text = args.slice(2).join(" ");
 
     if (text.length > 1000) {
-        utils.send(message, `That message is way too long!`);
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`);
         return;
     }
 
@@ -464,7 +469,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         id
     };
 
-    if (isPeriodic) {
+    if (isPeriodic && parsedPeriodicity.valid) {
         reminder.times = parsedTimes;
         reminder.rawTime = settings.periodicity;
         reminder.timeValues = parsedPeriodicity.timeValues;
@@ -497,7 +502,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "You can also omit the `at`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
         return;
     }
 
@@ -507,13 +512,18 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
-    if (!parsedDate.valid || (isPeriodic && !parsedPeriodicity.valid)) {
-        utils.send(message, `This time seems to be invalid. Try something like:\n${usage}`);
+    if (!parsedDate.valid) {
+        utils.send(message, `The time \`${args[1]}${parsedDate.isTimeInputted ? " " + args[2] : ""}\` seems to be invalid. Try something like:\n${usage}`);
+        return;
+    }
+
+    if (isPeriodic && !parsedPeriodicity.valid) {
+        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`);
         return;
     }
 
     if (isPeriodic && settings.times && (isNaN(parsedTimes) || parsedTimes < 2)) {
-        utils.send(message, `The amount of times that this will be announced is invalid or less than 2.`);
+        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`);
         return;
     }
 
@@ -521,7 +531,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const text = args.slice(parsedDate.isTimeInputted ? 3 : 2).join(" ");
 
     if (text.length > 1000) {
-        utils.send(message, `That message is way too long!`);
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`);
         return;
     }
 
@@ -541,7 +551,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         id
     };
 
-    if (isPeriodic) {
+    if (isPeriodic && parsedPeriodicity.valid) {
         reminder.times = parsedTimes;
         reminder.rawTime = settings.periodicity;
         reminder.timeValues = parsedPeriodicity.timeValues;
