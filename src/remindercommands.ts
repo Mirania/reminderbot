@@ -242,6 +242,7 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
     const categories: { name: string, ends?: moment.Moment, npAnnounced?: boolean, pAnnounced?: boolean }[] = [
         { name: "Today", ends: moment(now).add(1, "day").set("hour", 0).set("minute", 0) },
         { name: "Tomorrow", ends: moment(now).add(2, "day").set("hour", 0).set("minute", 0) },
+        { name: "This week", ends: moment(now).add(7, "day").set("hour", 0).set("minute", 0) },
         { name: "Later" }
     ];
 
@@ -471,13 +472,15 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     const id = await data.generateId();
 
+    const absoluteTimeString = parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm");
     const reminder: data.Reminder = {
         isPeriodic,
         text,
         timestamp: dateUtc,
         authorId: message.author.id,
         channelId: message.channel.id,
-        id
+        id,
+        debug: `${absoluteTimeString} ~~~~ ${data.getTimezone()}`
     };
 
     if (isPeriodic && parsedPeriodicity.valid) {
@@ -490,7 +493,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     let response = `Your reminder with id \`${id}\``;
     if (settings.echoReminder) response += ` '${reminder.text.replace(/\n/g, " ")}'`;
-    response += ` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}`;
+    response += ` has been set for ${absoluteTimeString}`;
     if (isPeriodic) response += ` and will repeat every **${reminder.rawTime}**`;
     if (isPeriodic && settings.times) response += `, with **${parsedTimes}x** ${parsedTimes === 1 ? 'ping' : 'pings'} to go`;
     response += "!";
@@ -555,13 +558,15 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
 
     const id = await data.generateId();
 
+    const absoluteTimeString = parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm");
     const reminder: data.Reminder = {
         isPeriodic,
         text,
         timestamp: dateUtc,
         authorId: message.author.id,
         channelId: message.channel.id,
-        id
+        id,
+        debug: `${absoluteTimeString} ~~~~ ${data.getTimezone()}`
     };
 
     if (isPeriodic && parsedPeriodicity.valid) {
@@ -575,7 +580,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const relativeTime = utils.getRelativeTimeString(now, parsedDate.date);
     let response = `Your reminder with id \`${id}\``;
     if (settings.echoReminder) response += ` '${reminder.text.replace(/\n/g, " ")}'`;
-    response += ` has been set for ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\``;
+    response += ` has been set for ${absoluteTimeString} \`(in ${relativeTime})\``;
     if (isPeriodic) response += ` and will repeat every **${reminder.rawTime}**`;
     if (isPeriodic && settings.times) response += `, with **${parsedTimes}x** ${parsedTimes === 1 ? 'ping' : 'pings'} to go`;
     response += "!";

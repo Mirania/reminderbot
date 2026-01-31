@@ -9,7 +9,8 @@ export type Reminder = {
     id: number,
     times?: number; // limits the renewal of periodic reminders
     rawTime?: string, // used for periodic reminders
-    timeValues?: { [unit: string]: number } // used to renew a periodic reminder
+    timeValues?: { [unit: string]: number }, // used to renew a periodic reminder
+    debug: string // debug string for easier reading when looking at the database
 }
 
 let reminders: { [key: string]: Reminder } = {};
