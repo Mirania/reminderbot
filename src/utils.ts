@@ -7,8 +7,13 @@ import { getTimezone } from './data';
  */
 export function send(
     context: discord.Message | discord.TextChannel | discord.DMChannel, 
-    content: string
+    content: string, 
+    bot: discord.Client
 ): Promise<discord.Message> {
+    if (bot.ws.status !== 0) {
+        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+    }
+
     const channel = context instanceof discord.Message ? context.channel : context;
 
     return channel.send(content).catch((reason: string) => {
@@ -24,8 +29,13 @@ export function send(
  */
 export function sendEmbed(
     context: discord.Message, 
-    content: discord.MessageEmbed
+    content: discord.MessageEmbed,
+    bot: discord.Client
 ): Promise<discord.Message> {
+    if (bot.ws.status !== 0) {
+        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+    }
+
     return context.channel.send({ embed: content }).catch((reason: string) => {
         let location = context.channel instanceof discord.DMChannel ?
             `${context.author.username}'s DMs` : `#${context.channel.name}`;
@@ -40,8 +50,13 @@ export function sendEmbed(
  */
 export function sendFile(
     context: discord.Message,
-    file: discord.MessageAttachment
+    file: discord.MessageAttachment,
+    bot: discord.Client
 ): Promise<discord.Message> {
+    if (bot.ws.status !== 0) {
+        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+    }
+
     return context.channel.send({ files: [file] }).catch((reason: string) => {
         let location = context.channel instanceof discord.DMChannel ?
             `${context.author.username}'s DMs` : `#${context.channel.name}`;

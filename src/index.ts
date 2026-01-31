@@ -4,6 +4,11 @@ import * as handler from './handler';
 import * as data from './data';
 import * as utils from './utils';
 
+if (process.argv[2] !== "fromSh") {
+    console.log("Make sure to run this bot using 'bash runner.sh' instead.");
+    process.exit(123);
+}
+
 const bot = new discord.Client({
     partials: ["MESSAGE", "CHANNEL"],
     ws: { intents: ["GUILDS", "GUILD_MESSAGES"] }

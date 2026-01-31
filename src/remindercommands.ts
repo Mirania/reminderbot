@@ -13,6 +13,7 @@ type ReminderBuilderSettings = Partial<{
 }>;
 
 export function help(message: discord.Message): void {
+    const bot = self();
     const prefix = process.env.COMMAND;
 
     const embed = new discord.MessageEmbed()
@@ -30,7 +31,7 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
         .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.");
 
-    utils.sendEmbed(message, embed);
+    utils.sendEmbed(message, embed, bot);
 }
 
 export const h = help;
@@ -40,6 +41,7 @@ export function reminder(message: discord.Message, args: string[]): void {
         return;
     }
 
+    const bot = self();
     const usage = `${utils.usage("reminder", "in/at date message")}\n` +
         "For relative time (in), 'date' should be something like 1d10h20m.\n\n" +
         "For absolute time (at), 'date' should be something like 30/01/2030 00:45. This uses the bot owner timezone.\n" +
@@ -49,7 +51,7 @@ export function reminder(message: discord.Message, args: string[]): void {
         "- Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
     if (args.length < 2) {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -66,7 +68,7 @@ export function reminder(message: discord.Message, args: string[]): void {
             buildRelativeTimeReminder(message, ["in", ...args], settings);
         }
     } else {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
         return;
     }  
 }
@@ -78,6 +80,7 @@ export function periodicreminder(message: discord.Message, args: string[]): void
         return;
     }
 
+    const bot = self();
     const usage = `${utils.usage("periodicreminder", "times in/at date repeat periodicity message")}\n` +
         "The 'times' is **optional** (not provided = renew the reminder forever) and should be something like 8 or 15x.\n" +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00. See the 'reminder' command for more examples.\n" +
@@ -88,7 +91,7 @@ export function periodicreminder(message: discord.Message, args: string[]): void
     const repeatArgIndex = args.findIndex(arg => arg === "repeat");
 
     if (args.length < 4 || repeatArgIndex === -1) {
-        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -99,7 +102,7 @@ export function periodicreminder(message: discord.Message, args: string[]): void
     const text = args.slice(repeatArgIndex + 2);
 
     if (dateArgs.length < 1 || !periodicity || text.length < 1) {
-        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -120,7 +123,7 @@ export function periodicreminder(message: discord.Message, args: string[]): void
             buildRelativeTimeReminder(message, ["in", ...dateArgs, ...text], settings);
         }
     } else {
-        utils.send(message, `To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 }
@@ -132,6 +135,7 @@ export function delay(message: discord.Message, args: string[]): void {
         return;
     }
 
+    const bot = self();
     const usage = `${utils.usage("delay", "date")}\n` +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
         "You can also specify the id of the reminder to delay, like 1234 1d10h20m.";
@@ -139,14 +143,14 @@ export function delay(message: discord.Message, args: string[]): void {
     const targetId: number | null = (args.length > 0 && /^[0-9]+$/.test(args[0])) ? parseInt(args[0]) : null;
 
     if (args.length < (targetId != null ? 2 : 1)) {
-        utils.send(message, `To delay a reminder, you can type:\n${usage}`);
+        utils.send(message, `To delay a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
     const toDelay = data.getLatestReminderMessage(targetId);
 
     if (!toDelay) {
-        utils.send(message, "There is no such reminder to delay.");
+        utils.send(message, "There is no such reminder to delay.", bot);
         return;
     }
 
@@ -169,12 +173,12 @@ export function append(message: discord.Message, args: string[]): void {
         return;
     }
 
+    const bot = self();
     if (args.length < 2) {
         const usage = `${utils.usage("append", "id text to append")}\n` +
             "The 'id' should be a number; it should be the id of some reminder.\n" +
             `Use ${process.env.COMMAND}list to check all ids.`;
-
-        utils.send(message, `To append to a reminder, you can type:\n${usage}`);
+        utils.send(message, `To append to a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -188,7 +192,7 @@ export function append(message: discord.Message, args: string[]): void {
     }
 
     if (!targetKey) {
-        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`);
+        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`, bot);
         return;
     }
 
@@ -199,7 +203,7 @@ export function append(message: discord.Message, args: string[]): void {
 
     updatedReminder.text += `\n┕ ${args.slice(1).join(" ")}`;
     data.updateReminder(targetKey, { text: updatedReminder.text });
-    utils.send(message, `Updated the reminder '${updatedReminder.text.replace(/\n/g, " ")}' which will happen on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
+    utils.send(message, `Updated the reminder '${updatedReminder.text.replace(/\n/g, " ")}' which will happen on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`, bot);
 }
 
 export const a = append;
@@ -210,11 +214,12 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
         return;
     }
 
+    const bot = self();
+
     if (args.length > 0 && isNaN(parseInt(args[0]))) {
         const usage = `${utils.usage("list", "page")}\n` +
             "The 'page', if provided, should be a number.";
-
-        utils.send(message, `To list your reminders, you can type:\n${usage}`);
+        utils.send(message, `To list your reminders, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -228,7 +233,7 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
     }
 
     if (periodic.length === 0 && nonperiodic.length === 0) {
-        utils.send(message, "There are no reminders.");
+        utils.send(message, "There are no reminders.", bot);
         return;
     }
 
@@ -278,7 +283,7 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
         let paginatedText = `**Non-periodic reminders${pages.length > 1 ? ` (${targetPage}/${pages.length})` : ""}:**\n`;
         paginatedText += pages[targetPage - 1];
 
-        await utils.send(message, paginatedText);
+        await utils.send(message, paginatedText, bot);
     }
     if (pMsgText.length > 0) {
         const pages = paginate(pMsgText);
@@ -287,7 +292,7 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
         let paginatedText = `­\n**Periodic reminders${pages.length > 1 ? ` (${targetPage}/${pages.length})` : ""}:**\n`;
         paginatedText += pages[targetPage - 1];
 
-        await utils.send(message, paginatedText);
+        await utils.send(message, paginatedText, bot);
     }
 }
 
@@ -320,12 +325,13 @@ export function clear(message: discord.Message, args: string[]): void {
         return;
     }
 
+    const bot = self();
     if (args.length < 1) {
         const usage = `${utils.usage("clear", "id")}\n` +
             "The 'id' should be a number; it should be the id of some reminder.\n" +
             `Use ${process.env.COMMAND}list to check all ids.`;
 
-        utils.send(message, `To clear a reminder, you can type:\n${usage}`);
+        utils.send(message, `To clear a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -339,7 +345,7 @@ export function clear(message: discord.Message, args: string[]): void {
     }
 
     if (!targetKey) {
-        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`);
+        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`, bot);
         return;
     }
 
@@ -350,28 +356,30 @@ export function clear(message: discord.Message, args: string[]): void {
 
     delete reminders[targetKey];
     data.deleteReminder(targetKey);
-    utils.send(message, `Deleted the reminder '${deletedReminder.text.replace(/\n/g, " ")}' which would've happened on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`);
+    utils.send(message, `Deleted the reminder '${deletedReminder.text.replace(/\n/g, " ")}' which would've happened on ${next.format("dddd, MMMM Do YYYY, HH:mm")} \`(in ${relativeTime})\`!`, bot);
 }
 
 export const c = clear;
 
 export async function battery(message: discord.Message): Promise<void> {
+    const bot = self();
     try {
         const status = await getBatteryStatus();
-        utils.send(message, `The battery is currently at **${status.percentage}%** and is${status.isCharging ? " " : " **not** "}charging.`);
+        utils.send(message, `The battery is currently at **${status.percentage}%** and is${status.isCharging ? " " : " **not** "}charging.`, bot);
     } catch (e) {
-        utils.send(message, `\`\`\`${e}\`\`\``);
+        utils.send(message, `\`\`\`${e}\`\`\``, bot);
     }
 }
 
 export const b = battery;
 
 export async function kill(message: discord.Message): Promise<void> {
+    const bot = self();
     try {
-        await utils.send(message, "Restarting...");
+        await utils.send(message, "Restarting...", bot);
         process.exit(1000);
     } catch (e) {
-        utils.send(message, `\`\`\`${e}\`\`\``);
+        utils.send(message, `\`\`\`${e}\`\`\``, bot);
     }
 }
 
@@ -382,6 +390,7 @@ export async function timezone(message: discord.Message, args: string[]): Promis
         return;
     }
 
+    const bot = self();
     const usage = `${utils.usage("timezone", "the timezone name")}\n` +
         "The name can contain multiple words and doesn't need to perfectly match a Moment timezone.\n" +
         "If there is no direct match, I'll try to infer a timezone with a similar name.";
@@ -390,7 +399,7 @@ export async function timezone(message: discord.Message, args: string[]): Promis
         const current = `The current timezone is \`${data.getTimezone()}\`.\n` +
             `The time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`
 
-        utils.send(message, `${current}\n\nTo set a timezone, you can type:\n${usage}`);
+        utils.send(message, `${current}\n\nTo set a timezone, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -398,19 +407,21 @@ export async function timezone(message: discord.Message, args: string[]): Promis
     const match = utils.allTimezones().find(tz => tz.toLowerCase().includes(query));
 
     if (!match) {
-        utils.send(message, "Could not find or partial match a timezone with that name.");
+        utils.send(message, "Could not find or partial match a timezone with that name.", bot);
         return;
     }
 
     await data.setTimezone(match);
-    utils.send(message, `Set your timezone to \`${data.getTimezone()}\`.\nThe time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`);
+    utils.send(message, `Set your timezone to \`${data.getTimezone()}\`.\nThe time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`, bot);
 }
 
 export const t = timezone;
 
 async function buildRelativeTimeReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<void> {
+    const bot = self();
+
     if (!message.guild) {
-        utils.send(message, "Please use this command in a server instead.");
+        utils.send(message, "Please use this command in a server instead.", bot);
         return;
     }
 
@@ -420,7 +431,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         "You can also omit the `in`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
-        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -431,17 +442,17 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
     if (!parsedDate.valid) {
-        utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`);
+        utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
     if (isPeriodic && !parsedPeriodicity.valid) {
-        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`);
+        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
     if (isPeriodic && settings.times && (isNaN(parsedTimes) || parsedTimes < 2)) {
-        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`);
+        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`, bot);
         return;
     }
 
@@ -449,12 +460,12 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const text = args.slice(2).join(" ");
 
     if (text.length > 1000) {
-        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`);
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`, bot);
         return;
     }
 
     if (dateUtc - nowUtc < 60 * 1000) {
-        utils.send(message, `1 minute into the future is the earliest you can set a reminder to!`);
+        utils.send(message, `1 minute into the future is the earliest you can set a reminder to!`, bot);
         return;
     }
 
@@ -484,12 +495,14 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     if (isPeriodic && settings.times) response += `, with **${parsedTimes}x** ${parsedTimes === 1 ? 'ping' : 'pings'} to go`;
     response += "!";
 
-    utils.send(message, response);
+    utils.send(message, response, bot);
 }
 
 async function buildAbsoluteTimeReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<void> {
+    const bot = self();
+
     if (!message.guild) {
-        utils.send(message, "Please use this command in a server instead.");
+        utils.send(message, "Please use this command in a server instead.", bot);
         return;
     }
 
@@ -502,7 +515,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "You can also omit the `at`. If your input is correct I'll still know what to do.";
 
     if (args.length < 3) {
-        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`);
+        utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
@@ -513,17 +526,17 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
     if (!parsedDate.valid) {
-        utils.send(message, `The time \`${args[1]}${parsedDate.isTimeInputted ? " " + args[2] : ""}\` seems to be invalid. Try something like:\n${usage}`);
+        utils.send(message, `The time \`${args[1]}${parsedDate.isTimeInputted ? " " + args[2] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
     if (isPeriodic && !parsedPeriodicity.valid) {
-        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`);
+        utils.send(message, `The time \`${settings.periodicity}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
     if (isPeriodic && settings.times && (isNaN(parsedTimes) || parsedTimes < 2)) {
-        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`);
+        utils.send(message, `The amount of times \`${parsedTimes}\` that this will be announced is invalid or less than 2.`, bot);
         return;
     }
 
@@ -531,12 +544,12 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const text = args.slice(parsedDate.isTimeInputted ? 3 : 2).join(" ");
 
     if (text.length > 1000) {
-        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`);
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`, bot);
         return;
     }
 
     if (dateUtc - nowUtc < 60 * 1000) {
-        utils.send(message, `1 minute into the future is the earliest you can set a reminder to!`);
+        utils.send(message, `1 minute into the future is the earliest you can set a reminder to!`, bot);
         return;
     }
 
@@ -567,5 +580,5 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     if (isPeriodic && settings.times) response += `, with **${parsedTimes}x** ${parsedTimes === 1 ? 'ping' : 'pings'} to go`;
     response += "!";
 
-    utils.send(message, response);
+    utils.send(message, response, bot);
 }

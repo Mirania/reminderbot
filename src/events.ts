@@ -29,7 +29,7 @@ export async function announceReminders(): Promise<void> {
             continue;
         }
 
-        await utils.send(channel, `\`${reminder.id}\` ${utils.mentionUser(reminder.authorId)} says: ${reminder.text}`);
+        await utils.send(channel, `\`${reminder.id}\` ${utils.mentionUser(reminder.authorId)} says: ${reminder.text}`, bot);
         await data.setLatestReminderMessage(reminder.id, reminder.text);
         (reminder.isPeriodic && (reminder.times == null || reminder.times > 1)) ? renewReminder(reminder) : delete reminders[key];
     }
@@ -84,5 +84,5 @@ export async function checkBattery(): Promise<void> {
         return;
     }
 
-    await utils.send(channel, `${utils.mentionUser(process.env.OWNER_ID)} battery is low (**${status.percentage}%**)! Should charge phone.`);
+    await utils.send(channel, `${utils.mentionUser(process.env.OWNER_ID)} battery is low (**${status.percentage}%**)! Should charge phone.`, bot);
 }
