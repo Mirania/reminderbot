@@ -2,5 +2,5 @@
 
 until npm run main fromSh; do
     echo "Bot process has died ... will restart it now."
-    sleep 10
+    sleep 60
 done
