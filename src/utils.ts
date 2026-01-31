@@ -3,7 +3,7 @@ import * as moment from 'moment-timezone';
 import { getTimezone } from './data';
 
 /**
- * Sends a discord message to the channel determined by `context`. Catches and logs the event if it fails.
+ * Sends a discord message to the channel determined by `context`.
  */
 export function send(
     context: discord.Message | discord.TextChannel | discord.DMChannel, 
@@ -11,7 +11,9 @@ export function send(
     bot: discord.Client
 ): Promise<discord.Message> {
     if (bot.ws.status !== 0) {
-        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+        const errorMessage = `Failed to send message due to websocket status ${bot.ws.status}.`;
+        log(`[!] ${errorMessage}`);
+        return Promise.reject(errorMessage);
     }
 
     const channel = context instanceof discord.Message ? context.channel : context;
@@ -19,13 +21,14 @@ export function send(
     return channel.send(content).catch((reason: string) => {
         let location = channel instanceof discord.DMChannel ?
             `${channel.recipient}'s DMs` : `#${channel.name}`;
-        log(`[!] Error sending message to ${location}. ${reason}`);
-        return context;
-    }) as Promise<discord.Message>;
+        const errorMessage = `[!] Error sending message to ${location}. ${reason}`;
+        log(errorMessage);
+        return Promise.reject(errorMessage);
+    });
 }
 
 /**
- * Sends a discord embed to the same channel as `context`. Catches and logs the event if it fails.
+ * Sends a discord embed to the same channel as `context`.
  */
 export function sendEmbed(
     context: discord.Message, 
@@ -33,20 +36,22 @@ export function sendEmbed(
     bot: discord.Client
 ): Promise<discord.Message> {
     if (bot.ws.status !== 0) {
-        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+        const errorMessage = `Failed to send message due to websocket status ${bot.ws.status}.`;
+        log(`[!] ${errorMessage}`);
+        return Promise.reject(errorMessage);
     }
 
     return context.channel.send({ embed: content }).catch((reason: string) => {
         let location = context.channel instanceof discord.DMChannel ?
             `${context.author.username}'s DMs` : `#${context.channel.name}`;
-        log(`[!] Error sending message to ${location}. ${reason}`);
-        return context;
-    }
-    ) as Promise<discord.Message>;
+        const errorMessage = `[!] Error sending message to ${location}. ${reason}`;
+        log(errorMessage);
+        return Promise.reject(errorMessage);
+    });
 }
 
 /**
- * Sends a file to the same channel as `context`. Catches and logs the event if it fails.
+ * Sends a file to the same channel as `context`.
  */
 export function sendFile(
     context: discord.Message,
@@ -54,16 +59,18 @@ export function sendFile(
     bot: discord.Client
 ): Promise<discord.Message> {
     if (bot.ws.status !== 0) {
-        return Promise.reject(`Failed to send message due to websocket status ${bot.ws.status}.`);
+        const errorMessage = `Failed to send message due to websocket status ${bot.ws.status}.`;
+        log(`[!] ${errorMessage}`);
+        return Promise.reject(errorMessage);
     }
 
     return context.channel.send({ files: [file] }).catch((reason: string) => {
         let location = context.channel instanceof discord.DMChannel ?
             `${context.author.username}'s DMs` : `#${context.channel.name}`;
-        log(`[!] Error sending message to ${location}. ${reason}`);
-        return context;
-    }
-    ) as Promise<discord.Message>;
+        const errorMessage = `[!] Error sending message to ${location}. ${reason}`;
+        log(errorMessage);
+        return Promise.reject(errorMessage);
+    });
 }
 
 /**
