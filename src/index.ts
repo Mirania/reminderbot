@@ -3,6 +3,7 @@ import * as discord from 'discord.js';
 import * as handler from './handler';
 import * as data from './data';
 import * as utils from './utils';
+import * as moment from 'moment-timezone';
 
 if (process.argv[2] !== "fromSh") {
     console.log("Make sure to run this bot using 'bash runner.sh' instead.");
@@ -17,6 +18,7 @@ const botId = process.env.BOT_ID;
 const prefix = process.env.COMMAND;
 
 let isReady = false;
+let _loginTimestamp: moment.Moment;
 bot.login(process.env.BOT_TOKEN);
 
 bot.on("ready", async () => {
@@ -24,6 +26,7 @@ bot.on("ready", async () => {
     await data.init();
     handler.handleEvents();
     isReady = true;
+    _loginTimestamp = moment().tz(data.getTimezone());
     utils.log("Bot is online.");
 })
 
@@ -37,4 +40,8 @@ bot.on("message", (message) => {
 
 export function self(): discord.Client {
     return bot;
+}
+
+export function loginTimestamp(): moment.Moment {
+    return _loginTimestamp;
 }

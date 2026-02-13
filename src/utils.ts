@@ -182,7 +182,7 @@ export function serverMemberName(member: discord.GuildMember): string {
     return `${member.nickname} (${member.user.username}#${member.user.discriminator})`;
 }
 
-export function getRelativeTimeString(past: moment.Moment, future: moment.Moment) {
+export function getRelativeTimeString(past: moment.Moment, future: moment.Moment, useSecondsAsFallback: boolean = false) {
     const a = moment(past).tz(getTimezone()), b = moment(future).tz(getTimezone());
 
     const monthDiff = b.diff(a, "months");
@@ -219,6 +219,12 @@ export function getRelativeTimeString(past: moment.Moment, future: moment.Moment
     }
     if (minuteDiff > 0) {
         return prepareTimeUnit('minute', minuteDiff);
+    }
+    if (useSecondsAsFallback) {
+        const secondDiff = b.diff(a, "seconds");
+        if (secondDiff > 0) {
+            return prepareTimeUnit('second', secondDiff);
+        }
     }
     return "less than a minute";
 }

@@ -2,9 +2,10 @@ import * as discord from 'discord.js';
 import * as utils from './utils';
 import * as data from './data';
 import * as moment from 'moment-timezone';
-import { self } from '.';
+import { loginTimestamp, self } from '.';
 import { getBatteryStatus } from './battery';
 import { parseAbsoluteTime, parseRelativeTime } from './parsers';
+import { nextReminderCheck } from './handler';
 
 type ReminderBuilderSettings = Partial<{
     times: string | null;
@@ -29,12 +30,30 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
         .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
         .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
-        .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.");
+        .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.")
+        .addField(`${prefix}p / ${prefix}ping / ${prefix}u / ${prefix}uptime`, "Data about the current bot instance.");
 
     utils.sendEmbed(message, embed, bot);
 }
 
 export const h = help;
+
+export function uptime(message: discord.Message): void {
+    const now = moment().tz(data.getTimezone());
+    const pingMs = now.toDate().getTime() - message.createdTimestamp;
+    const uptime = utils.getRelativeTimeString(loginTimestamp(), now, true);
+    const nextCheck = utils.getRelativeTimeString(now, nextReminderCheck(), true);
+
+    const response = `:clock2: This message took \`${pingMs}ms\` to receive.\n` +
+        `:mag_right: The bot has been up for \`${uptime}\`.\n` +
+        `:books: The next check for reminders is in \`${nextCheck}\`.`;
+
+    utils.send(message, response, self());
+}
+
+export const u = uptime;
+export const p = uptime;
+export const ping = uptime;
 
 export function reminder(message: discord.Message, args: string[]): void {
     if (!utils.isOwner(message)) {
