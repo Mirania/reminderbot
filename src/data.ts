@@ -13,8 +13,10 @@ export type Reminder = {
     debug: string // debug string for easier reading when looking at the database
 }
 
+export type IdAndMessagePair = { id: number, message: string };
+
 let reminders: { [key: string]: Reminder } = {};
-let latestReminders: { id: number, message: string }[] = [];
+let latestReminders: IdAndMessagePair[] = [];
 
 let latestId: number = -1;
 const maxId: number = 5000;
@@ -70,16 +72,22 @@ export async function setReminder(reminder: Reminder): Promise<void> {
     reminders[await saveReminder(reminder)] = reminder;
 }
 
-export async function setLatestReminderMessage(id: number, message: string): Promise<void> {
-    latestReminders.push({id, message});
+export async function setReminderMessageAsAnnounced(reminder: IdAndMessagePair): Promise<void> {
+    latestReminders.push(reminder);
     while (latestReminders.length > maxLatestRemindersLength) {
         latestReminders.shift();
     }
     await db.post("reminderconfig/latest", latestReminders);
 }
 
-export function getLatestReminderMessage(id: number | null): { id: number, message: string } | undefined {
+export function getAnnouncedReminderMessage(id: number | null): IdAndMessagePair | undefined {
     return id != null ? latestReminders.find(r => r.id === id) : latestReminders[latestReminders.length - 1];
+}
+
+export function getUnannouncedReminderMessage(id: number | null): IdAndMessagePair | undefined {
+    if (id == null) return undefined;
+    const reminder = Object.values(reminders).find(r => r.id === id);
+    return reminder != null ? {id, message: reminder.text} : undefined;
 }
 
 export async function setTimezone(tz: string): Promise<void> {

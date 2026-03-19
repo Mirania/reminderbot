@@ -26,6 +26,7 @@ export function help(message: discord.Message): void {
         .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
         .addField(`${prefix}a / ${prefix}add / ${prefix}append`, "Append some text to an already existing reminder.")
         .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
+        .addField(`${prefix}m / ${prefix}merge / ${prefix}concat`, "Merge multiple reminders into one.")
         .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
         .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
         .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
@@ -166,7 +167,7 @@ export function delay(message: discord.Message, args: string[]): void {
         return;
     }
 
-    const toDelay = data.getLatestReminderMessage(targetId);
+    const toDelay = data.getAnnouncedReminderMessage(targetId) ?? data.getUnannouncedReminderMessage(targetId);
 
     if (!toDelay) {
         utils.send(message, "There is no such reminder to delay.", bot);
@@ -186,6 +187,53 @@ export function delay(message: discord.Message, args: string[]): void {
 }
 
 export const d = delay;
+
+export function merge(message: discord.Message, args: string[]): void {
+    if (!utils.isOwner(message)) {
+        return;
+    }
+
+    const bot = self();
+    const usage = `${utils.usage("merge", "reminder1 reminder2 reminder3 reminderX... date")}\n` +
+        "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
+        "Specify the ids of all the reminders you would like to merge into a single one.";
+
+    const targetIds: number[] = [];
+    for (const arg of args) {
+        if (!/^[0-9]+$/.test(arg)) {
+            break;
+        }
+        targetIds.push(parseInt(arg));
+    }
+
+    if (args.length < 2 || targetIds.length < 2) {
+        utils.send(message, `To merge reminders, you can type:\n${usage}`, bot);
+        return;
+    }
+    
+    const targets = targetIds.map(id => data.getAnnouncedReminderMessage(id) ?? data.getUnannouncedReminderMessage(id) ?? { id, message: null });
+    const notFound = targets.filter(t => !t.message);
+
+    if (notFound.length > 0) {
+        utils.send(message, `There are no such reminders to delay: ${notFound.map(t => `\`${t.id}\``).join(", ")}`, bot);
+        return;
+    }
+
+    const mergedMessage = targets.map(t => t.message).join("\n┕ ");
+    const settings: ReminderBuilderSettings = {
+        echoReminder: true
+    };
+
+    const timeArgs = args.slice(targets.length);
+    if (/^[A-Za-z]+$/.test(timeArgs[0]) || timeArgs[0].includes("/")) {
+        buildAbsoluteTimeReminder(message, ["at", ...timeArgs, mergedMessage], settings);
+    } else {
+        buildRelativeTimeReminder(message, ["in", ...timeArgs, mergedMessage], settings);
+    }
+}
+
+export const m = merge;
+export const concat = merge;
 
 export function append(message: discord.Message, args: string[]): void {
     if (!utils.isOwner(message)) {
