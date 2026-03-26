@@ -185,7 +185,7 @@ export function serverMemberName(member: discord.GuildMember): string {
 export function getRelativeTimeString(past: moment.Moment, future: moment.Moment, useSecondsAsFallback: boolean = false) {
     const a = moment(past).tz(getTimezone()), b = moment(future).tz(getTimezone());
 
-    const yearDiff = b.diff(a, "months");
+    const yearDiff = b.diff(a, "years");
     if (yearDiff > 0) {
         a.add(yearDiff, "years");
     }
