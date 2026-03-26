@@ -178,13 +178,17 @@ export function clamp(min: number, value: number, max: number): number {
  */
 export function serverMemberName(member: discord.GuildMember): string {
     if (!member) return "someone unknown";
-    if (!member.nickname) return `${member.user.username}#${member.user.discriminator}`;
-    return `${member.nickname} (${member.user.username}#${member.user.discriminator})`;
+    if (!member.nickname) return member.user.username;
+    return `${member.nickname} (${member.user.username})`;
 }
 
 export function getRelativeTimeString(past: moment.Moment, future: moment.Moment, useSecondsAsFallback: boolean = false) {
     const a = moment(past).tz(getTimezone()), b = moment(future).tz(getTimezone());
 
+    const yearDiff = b.diff(a, "months");
+    if (yearDiff > 0) {
+        a.add(yearDiff, "years");
+    }
     const monthDiff = b.diff(a, "months");
     if (monthDiff > 0) {
         a.add(monthDiff, "months");
@@ -203,6 +207,10 @@ export function getRelativeTimeString(past: moment.Moment, future: moment.Moment
     }
 
     // could make this a lot prettier/smarter but it's easier to debug this way
+    if (yearDiff > 0) {
+        if (monthDiff > 0) return `${prepareTimeUnit('year', yearDiff)} and ${prepareTimeUnit('month', monthDiff)}`;
+        return prepareTimeUnit('year', yearDiff);
+    }
     if (monthDiff > 0) {
         if (dayDiff > 0) return `${prepareTimeUnit('month', monthDiff)} and ${prepareTimeUnit('day', dayDiff)}`;
         return prepareTimeUnit('month', monthDiff);

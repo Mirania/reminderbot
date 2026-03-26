@@ -117,3 +117,7 @@ export async function generateId(): Promise<number> {
 export function getLatestId(): number {
     return latestId;
 }
+
+export function maxReminderLength(): number {
+    return 1750;
+}

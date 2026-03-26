@@ -527,8 +527,8 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const dateUtc = moment(parsedDate.date).utc().valueOf();
     const text = args.slice(2).join(" ");
 
-    if (text.length > 1000) {
-        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`, bot);
+    if (text.length > data.maxReminderLength()) {
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of ${data.maxReminderLength()}!`, bot);
         return;
     }
 
@@ -613,8 +613,8 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const dateUtc = moment(parsedDate.date).utc().valueOf();
     const text = args.slice(parsedDate.isTimeInputted ? 3 : 2).join(" ");
 
-    if (text.length > 1000) {
-        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of 1000!`, bot);
+    if (text.length > data.maxReminderLength()) {
+        utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of ${data.maxReminderLength()}!`, bot);
         return;
     }
 
