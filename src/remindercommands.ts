@@ -13,26 +13,42 @@ type ReminderBuilderSettings = Partial<{
     echoReminder: boolean | null;
 }>;
 
-export function help(message: discord.Message): void {
+export function help(message: discord.Message, args: string[]): void {
+    if (!utils.isOwner(message)) {
+        return;
+    }
+
     const bot = self();
     const prefix = process.env.COMMAND;
 
     const embed = new discord.MessageEmbed()
         .setAuthor(`~~ You used the ${prefix}help command! ~~`, self().user.avatarURL())
         .setColor("#FF0000")
-        .setFooter("For more info, ask the bot owner!")
-        .setTitle("Here's what I can do:")
-        .addField(`${prefix}r / ${prefix}reminder`, "Set a reminder.")
-        .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
-        .addField(`${prefix}a / ${prefix}add / ${prefix}append`, "Append some text to an already existing reminder.")
-        .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
-        .addField(`${prefix}m / ${prefix}merge / ${prefix}concat`, "Merge multiple reminders into one.")
-        .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
-        .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
-        .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
-        .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
-        .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.")
-        .addField(`${prefix}p / ${prefix}ping / ${prefix}u / ${prefix}uptime`, "Data about the current bot instance.");
+        .setFooter("For more info, ask the bot owner!");
+
+    if (args.length > 0 && (args[0] === "hidden" || args[0] === "h")) {
+        embed.setTitle("Here's what I can do!")
+            .addField(`${prefix}check`, "Immediately run a check for reminders to announce.")
+            .addField(`${prefix}load`, "Immediately reload all data from the database.")
+            .addField(`${prefix}save`, "Immediately save all data to the database.")
+            .addField(`${prefix}channel`, "Set which channel pings should be sent in (empty = mirror the reminder's channel).")
+            .addField(`${prefix}backup`, "Generate a backup of current memory.")
+            .addField(`${prefix}invite`, "Generate an invite link.")
+            .addField(`${prefix}split`, "Split a number proportionally between months.");
+    } else {
+        embed.setTitle(`Here's what I can do! Type \`${prefix}help hidden\` for some secret commands.`)
+            .addField(`${prefix}r / ${prefix}reminder`, "Set a reminder.")
+            .addField(`${prefix}pr / ${prefix}periodicreminder`, "Set a periodic reminder.")
+            .addField(`${prefix}a / ${prefix}add / ${prefix}append`, "Append some text to an already existing reminder.")
+            .addField(`${prefix}d / ${prefix}delay`, "Snooze a reminder; repeat it at some point in the future.")
+            .addField(`${prefix}m / ${prefix}merge / ${prefix}concat`, "Merge multiple reminders into one.")
+            .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
+            .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
+            .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
+            .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
+            .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.")
+            .addField(`${prefix}p / ${prefix}ping / ${prefix}u / ${prefix}uptime`, "Data about the current bot instance.");
+    }
 
     utils.sendEmbed(message, embed, bot);
 }
