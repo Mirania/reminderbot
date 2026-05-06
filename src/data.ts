@@ -60,14 +60,22 @@ export async function saveReminders(reminders: { [key: string]: Reminder }): Pro
     await db.post("reminders/", reminders);
 }
 
-export async function deleteReminder(key: string): Promise<void> {
+/**
+ * Deletes the reminder in the cache and database.
+ */
+export async function deleteReminder(key: string | null | undefined): Promise<void> {
+    if (!key) return;
     await db.remove(`reminders/${key}`);
+    delete reminders[key];
 }
 
 export function getReminders(): { [key: string]: Reminder } {
     return reminders;
 }
 
+/**
+ * Adds the reminder to the cache and database.
+ */
 export async function setReminder(reminder: Reminder): Promise<void> {
     reminders[await saveReminder(reminder)] = reminder;
 }
@@ -78,6 +86,18 @@ export async function setReminderMessageAsAnnounced(reminder: IdAndMessagePair):
         latestReminders.shift();
     }
     await db.post("reminderconfig/latest", latestReminders);
+}
+
+export function getReminderKeyById(id: number | null): string | undefined {
+    if (id == null) return undefined;
+
+    for (const key in reminders) {
+        if (reminders[key].id === id) {
+            return key;
+        }
+    }
+    
+    return undefined;
 }
 
 export function getAnnouncedReminderMessage(id: number | null): IdAndMessagePair | undefined {

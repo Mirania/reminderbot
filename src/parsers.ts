@@ -80,8 +80,8 @@ function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefine
             case "thu": case "thursday": targetWeekday = 4; break;
             case "fri": case "friday": targetWeekday = 5; break;
             case "sat": case "saturday": targetWeekday = 6; break;
-            case "today": targetWeekday = -2; break;
-            case "tmrw": case "tomorrow": targetWeekday = -3; break;
+            case "tdy": case "today": targetWeekday = -2; break;
+            case "tmr": case "tmrw": case "tomorrow": targetWeekday = -3; break;
             default: targetWeekday = -1;
         }
         if (targetWeekday === -1) {
