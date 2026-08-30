@@ -1,4 +1,5 @@
 import * as db from './firebase-module';
+import * as rot from './rotcrypt';
 
 export type Reminder = {
     isPeriodic: boolean, // periodic? if yes, should renew once announced
@@ -11,12 +12,23 @@ export type Reminder = {
     rawTime?: string, // used for periodic reminders
     timeValues?: { [unit: string]: number }, // used to renew a periodic reminder
     debug: string // debug string for easier reading when looking at the database
-}
+};
 
 export type IdAndMessagePair = { id: number, message: string };
 
+export type Secrets = {
+    readonly COMMAND_PREFIX: string;
+    readonly BOT_ID: string;
+    readonly BOT_TOKEN: string;
+    readonly BOT_PERMS: string;
+    readonly OWNER_IDS: string[];
+    readonly OWNER_TIMEZONE: string;
+    readonly REMINDER_ROLE: string;
+};
+
 let reminders: { [key: string]: Reminder } = {};
 let latestReminders: IdAndMessagePair[] = [];
+let secrets: Secrets;
 
 let latestId: number = -1;
 const maxId: number = 5000;
@@ -34,10 +46,21 @@ export async function init(): Promise<void> {
  * Refreshes and loads everything.
  */
 export async function loadImmediate(): Promise<void> {
+    const rawSecrets: any = await db.get("env/reminderbot");
+    secrets = {
+        COMMAND_PREFIX: rawSecrets.COMMAND_PREFIX,
+        BOT_ID: rot.decrypt(rawSecrets.BOT_ID, rawSecrets.ROT),
+        BOT_TOKEN: rot.decrypt(rawSecrets.BOT_TOKEN, rawSecrets.ROT),
+        BOT_PERMS: rawSecrets.BOT_PERMS,
+        OWNER_IDS: rot.decrypt(rawSecrets.OWNER_IDS, rawSecrets.ROT).split(","),
+        OWNER_TIMEZONE: rawSecrets.OWNER_TIMEZONE,
+        REMINDER_ROLE: rawSecrets.REMINDER_ROLE
+    };
+
     reminders = await db.get("reminders/") ?? {};
     latestReminders = await db.get("reminderconfig/latest") ?? [];
     latestId = await db.get("reminderconfig/latestId");
-    timezone = await db.get("reminderconfig/timezone") ?? process.env.OWNER_TIMEZONE;
+    timezone = await db.get("reminderconfig/timezone") ?? secrets.OWNER_TIMEZONE;
     preferredChannel = await db.get("reminderconfig/channel");
 }
 
@@ -108,6 +131,10 @@ export function getUnannouncedReminderMessage(id: number | null): IdAndMessagePa
     if (id == null) return undefined;
     const reminder = Object.values(reminders).find(r => r.id === id);
     return reminder != null ? {id, message: reminder.text} : undefined;
+}
+
+export function getSecrets(): Secrets {
+    return secrets;
 }
 
 export async function setTimezone(tz: string): Promise<void> {

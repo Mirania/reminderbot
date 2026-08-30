@@ -1,6 +1,6 @@
 import * as discord from 'discord.js';
 import * as moment from 'moment-timezone';
-import { getTimezone } from './data';
+import * as data from './data';
 
 /**
  * Sends a discord message to the channel determined by `context`.
@@ -98,7 +98,7 @@ export async function getIfExists(manager: any, id: string): Promise<any> {
  * Returns formatted text about command usage.
  */
 export function usage(commandName: string, argSyntax?: string): string {
-    return `\`\`\`bash\n${process.env.COMMAND}${commandName} ${argSyntax ? argSyntax : ""}\`\`\``;
+    return `\`\`\`bash\n${data.getSecrets().COMMAND_PREFIX}${commandName} ${argSyntax ? argSyntax : ""}\`\`\``;
 }
 
 /**
@@ -112,7 +112,7 @@ export function isAdmin(message: discord.Message): boolean {
  * Check if message was posted by the bot owner.
  */
 export function isOwner(message: discord.Message): boolean {
-    return process.env.OWNER_ID === message.author.id;
+    return data.getSecrets().OWNER_IDS.findIndex(id => id === message.author.id) > -1;
 }
 
 /**
@@ -120,6 +120,13 @@ export function isOwner(message: discord.Message): boolean {
  */
 export function mentionUser(userId: string): string {
     return `<@${userId}>`;
+}
+
+/**
+ * Returns a chat mention of a role.
+ */
+export function mentionRole(roleId: string): string {
+    return `<@&${roleId}>`;
 }
 
 /**
@@ -156,7 +163,7 @@ export function allTimezones(): string[] {
  * Prints a message to the console.
  */
 export function log(text: string): void {
-    console.log(`[${moment().tz(getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
+    console.log(`[${moment().tz(data.getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
 }
 
 /**
@@ -183,7 +190,7 @@ export function serverMemberName(member: discord.GuildMember): string {
 }
 
 export function getRelativeTimeString(past: moment.Moment, future: moment.Moment, useSecondsAsFallback: boolean = false) {
-    const a = moment(past).tz(getTimezone()), b = moment(future).tz(getTimezone());
+    const a = moment(past).tz(data.getTimezone()), b = moment(future).tz(data.getTimezone());
 
     const yearDiff = b.diff(a, "years");
     if (yearDiff > 0) {

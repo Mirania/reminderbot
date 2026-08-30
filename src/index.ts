@@ -14,29 +14,35 @@ const bot = new discord.Client({
     partials: ["MESSAGE", "CHANNEL"],
     ws: { intents: ["GUILDS", "GUILD_MESSAGES"] }
 });
-const botId = process.env.BOT_ID;
-const prefix = process.env.COMMAND;
-
-let isReady = false;
 let _loginTimestamp: moment.Moment;
-bot.login(process.env.BOT_TOKEN);
 
-bot.on("ready", async () => {
-    bot.user.setPresence({ activity: { name: `Reminder Bot - ${prefix}help` }, status: "dnd" });
+main();
+
+async function main() {
     await data.init();
-    handler.handleEvents();
-    isReady = true;
-    _loginTimestamp = moment().tz(data.getTimezone());
-    utils.log("Bot is online.");
-})
 
-bot.on("message", (message) => {
-    if (!isReady || message.author.id === botId) return;
+    const botId = data.getSecrets().BOT_ID;
+    const prefix = data.getSecrets().COMMAND_PREFIX;
 
-    if (message.content.startsWith(prefix)) {
-        handler.handleCommand(message);
-    }
-});
+    let isReady = false;
+    bot.login(data.getSecrets().BOT_TOKEN);
+
+    bot.on("ready", async () => {
+        bot.user.setPresence({ activity: { name: `Reminder Bot - ${prefix}help` }, status: "dnd" });
+        handler.handleEvents();
+        isReady = true;
+        _loginTimestamp = moment().tz(data.getTimezone());
+        utils.log("Bot is online.");
+    })
+
+    bot.on("message", (message) => {
+        if (!isReady || message.author.id === botId) return;
+
+        if (message.content.startsWith(prefix) && utils.isOwner(message)) {
+            handler.handleCommand(message);
+        }
+    });
+}
 
 export function self(): discord.Client {
     return bot;

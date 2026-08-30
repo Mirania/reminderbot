@@ -6,51 +6,26 @@ import * as moment from 'moment-timezone';
 import { self } from '.';
 
 export function check(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     events.announceReminders();
     utils.send(message, "'checkreminders' done.", self());
 }
 
 export function load(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     data.loadImmediate();
     utils.send(message, "'load' done.", self());
 }
 
 export function save(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     data.saveImmediate();
     utils.send(message, "'save' done.", self());
 }
 
 export function channel(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     data.setPreferredChannel(args[0]);
     utils.send(message, `Set pings channel to ${args[0] ?? 'mirror where each reminder is set'}.`, self());
 }
 
 export function backup(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     const allData = {
         reminders: data.getReminders(),
         config: {
@@ -65,23 +40,13 @@ export function backup(message: discord.Message): void {
 }
 
 export function invite(message: discord.Message): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
-    const link = `https://discordapp.com/oauth2/authorize?client_id=${process.env.BOT_ID}` +
-                 `&scope=bot&permissions=${process.env.BOT_PERMS}`;
+    const link = `https://discordapp.com/oauth2/authorize?client_id=${data.getSecrets().BOT_ID}` +
+                 `&scope=bot&permissions=${data.getSecrets().BOT_PERMS}`;
 
     utils.send(message, `Here you go!\n\n${link}`, self());
 }
 
 export function split(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        utils.send(message, "You must be a bot owner to use this command!", self());
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("split", "startdate enddate number")}\n` +
         "Start and end dates must be in DD/MM/YYYY format, e.g. `01/01/2025` or `1/2/2026` or `6/9/26`.\n" +

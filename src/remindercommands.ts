@@ -14,12 +14,8 @@ type ReminderBuilderSettings = Partial<{
 }>;
 
 export function help(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
-    const prefix = process.env.COMMAND;
+    const prefix = data.getSecrets().COMMAND_PREFIX;
 
     const embed = new discord.MessageEmbed()
         .setAuthor(`~~ You used the ${prefix}help command! ~~`, self().user.avatarURL())
@@ -73,10 +69,6 @@ export const p = uptime;
 export const ping = uptime;
 
 export function reminder(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("reminder", "in/at date message")}\n` +
         "For relative time (in), 'date' should be something like 1d10h20m.\n\n" +
@@ -112,10 +104,6 @@ export function reminder(message: discord.Message, args: string[]): void {
 export const r = reminder;
 
 export function periodicreminder(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("periodicreminder", "times in/at date repeat periodicity message")}\n` +
         "The 'times' is **optional** (not provided = renew the reminder forever) and should be something like 8 or 15x.\n" +
@@ -167,10 +155,6 @@ export function periodicreminder(message: discord.Message, args: string[]): void
 export const pr = periodicreminder;
 
 export function delay(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("delay", "date")}\n` +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
@@ -205,10 +189,6 @@ export function delay(message: discord.Message, args: string[]): void {
 export const d = delay;
 
 export async function merge(message: discord.Message, args: string[]): Promise<void> {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("merge", "reminder1 reminder2 reminder3 reminderX... date")}\n` +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
@@ -255,15 +235,11 @@ export const m = merge;
 export const concat = merge;
 
 export function append(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     if (args.length < 2) {
         const usage = `${utils.usage("append", "id text to append")}\n` +
             "The 'id' should be a number; it should be the id of some reminder.\n" +
-            `Use ${process.env.COMMAND}list to check all ids.`;
+            `Use ${data.getSecrets().COMMAND_PREFIX}list to check all ids.`;
         utils.send(message, `To append to a reminder, you can type:\n${usage}`, bot);
         return;
     }
@@ -272,7 +248,7 @@ export function append(message: discord.Message, args: string[]): void {
     const targetKey = data.getReminderKeyById(Number(args[0]));
 
     if (!targetKey) {
-        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`, bot);
+        utils.send(message, `Did not find a reminder with that id. Use ${data.getSecrets().COMMAND_PREFIX}list to check all ids.`, bot);
         return;
     }
 
@@ -290,10 +266,6 @@ export const a = append;
 export const add = append;
 
 export async function list(message: discord.Message, args: string[]): Promise<void> {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
 
     if (args.length > 0 && isNaN(parseInt(args[0]))) {
@@ -402,15 +374,11 @@ function paginate(lines: string[]) {
 }
 
 export function clear(message: discord.Message, args: string[]): void {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     if (args.length < 1) {
         const usage = `${utils.usage("clear", "id")}\n` +
             "The 'id' should be a number; it should be the id of some reminder.\n" +
-            `Use ${process.env.COMMAND}list to check all ids.`;
+            `Use ${data.getSecrets().COMMAND_PREFIX}list to check all ids.`;
 
         utils.send(message, `To clear a reminder, you can type:\n${usage}`, bot);
         return;
@@ -420,7 +388,7 @@ export function clear(message: discord.Message, args: string[]): void {
     const targetKey = data.getReminderKeyById(Number(args[0]));
 
     if (!targetKey) {
-        utils.send(message, `Did not find a reminder with that id. Use ${process.env.COMMAND}list to check all ids.`, bot);
+        utils.send(message, `Did not find a reminder with that id. Use ${data.getSecrets().COMMAND_PREFIX}list to check all ids.`, bot);
         return;
     }
 
@@ -460,10 +428,6 @@ export async function kill(message: discord.Message): Promise<void> {
 export const k = kill;
 
 export async function timezone(message: discord.Message, args: string[]): Promise<void> {
-    if (!utils.isOwner(message)) {
-        return;
-    }
-
     const bot = self();
     const usage = `${utils.usage("timezone", "the timezone name")}\n` +
         "The name can contain multiple words and doesn't need to perfectly match a Moment timezone.\n" +
