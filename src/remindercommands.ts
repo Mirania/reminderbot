@@ -3,7 +3,7 @@ import * as utils from './utils';
 import * as data from './data';
 import * as moment from 'moment-timezone';
 import { loginTimestamp, self } from '.';
-import { getBatteryStatus } from './battery';
+import { getBatteryHistory, getBatteryStatus } from './battery';
 import { parseAbsoluteTime, parseRelativeTime } from './parsers';
 import { nextReminderCheck } from './handler';
 
@@ -53,7 +53,7 @@ export const h = help;
 
 export function uptime(message: discord.Message): void {
     const now = moment().tz(data.getTimezone());
-    const pingMs = now.toDate().getTime() - message.createdTimestamp;
+    const pingMs = now.utc().valueOf() - message.createdTimestamp;
     const uptime = utils.getRelativeTimeString(loginTimestamp(), now, true);
     const nextCheck = utils.getRelativeTimeString(now, nextReminderCheck(), true);
 
@@ -407,7 +407,17 @@ export async function battery(message: discord.Message): Promise<void> {
     const bot = self();
     try {
         const status = await getBatteryStatus();
-        utils.send(message, `The battery is currently at **${status.percentage}%** and is${status.isCharging ? " " : " **not** "}charging.`, bot);
+        const history = getBatteryHistory();
+
+        let listedHistory = `:hourglass: Battery history:\n`;
+        if (history.length === 0) {
+            listedHistory += "• None!";
+        } else {
+            const now = moment().tz(data.getTimezone());
+            listedHistory += history.map(h => `• **${h.percentage}%** \`${utils.getRelativeTimeString(h.timestamp, now)} ago\``).join("\n");
+        }
+
+        utils.send(message, `The battery is currently at **${status.percentage}%** and is${status.isCharging ? " " : " **not** "}charging.\n\n${listedHistory}`, bot);
     } catch (e) {
         utils.send(message, `\`\`\`${e}\`\`\``, bot);
     }
