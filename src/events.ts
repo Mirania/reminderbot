@@ -3,7 +3,7 @@ import * as discord from 'discord.js';
 import * as data from "./data";
 import * as moment from 'moment-timezone';
 import { self } from ".";
-import { getBatteryStatus } from './battery';
+import { BatteryStatus, getBatteryStatus } from './battery';
 
 export async function announceReminders(): Promise<void> {
     const reminders = data.getReminders();
@@ -63,7 +63,7 @@ function renewReminder(reminder: data.Reminder): void {
 const batteryLowThreshold = 15;
 
 export async function checkBattery(): Promise<void> {
-    let status: { percentage: number, isCharging: boolean };
+    let status: BatteryStatus;
 
     try {
         status = await getBatteryStatus(true);

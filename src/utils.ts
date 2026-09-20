@@ -223,7 +223,14 @@ export function getRelativeTimeString(past: moment.Moment, future: moment.Moment
         return prepareTimeUnit('month', monthDiff);
     }
     if (dayDiff > 0) {
-        if (dayDiff >= 7 || (hourDiff === 0 && minuteDiff === 0)) return prepareTimeUnit('day', dayDiff);
+        if (dayDiff >= 7) {
+            return prepareTimeUnit('day', dayDiff);
+        }
+        if (dayDiff >= 2) {
+            if (hourDiff > 0) return `${prepareTimeUnit('day', dayDiff)} and ${prepareTimeUnit('hour', hourDiff)}`;
+            return prepareTimeUnit('day', dayDiff);
+        }
+        if (hourDiff === 0 && minuteDiff === 0) return prepareTimeUnit('day', dayDiff);
         if (hourDiff > 0 && minuteDiff === 0) return `${prepareTimeUnit('day', dayDiff)} and ${prepareTimeUnit('hour', hourDiff)}`;
         if (hourDiff === 0 && minuteDiff > 0) return `${prepareTimeUnit('day', dayDiff)} and ${prepareTimeUnit('minute', minuteDiff)}`;
         return `${prepareTimeUnit('day', dayDiff)}, ${prepareTimeUnit('hour', hourDiff)} and ${prepareTimeUnit('minute', minuteDiff)}`;
