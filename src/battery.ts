@@ -3,13 +3,13 @@ import * as utils from './utils';
 import * as data from "./data";
 import moment = require("moment-timezone");
 
-type BatteryStatus = { percentage: number, isCharging: boolean };
-type BatteryHistoryEntry = { percentage: number, timestamp: moment.Moment };
+export type BatteryStatus = { percentage: number, isCharging: boolean };
+export type BatteryHistoryEntry = { percentage: number, timestamp: moment.Moment };
 
 let batteryHistory: BatteryHistoryEntry[] = [];
 const batteryHistorySize = 5;
 
-export function getBatteryStatus(): Promise<BatteryStatus> {
+export function getBatteryStatus(storeInHistory: boolean): Promise<BatteryStatus> {
     return new Promise((resolve, reject) => {
         utils.log("Querying battery status...");
 
@@ -21,8 +21,10 @@ export function getBatteryStatus(): Promise<BatteryStatus> {
             try {
                 const status = JSON.parse(stdout);
 
-                if (batteryHistory.length > batteryHistorySize) batteryHistory.shift();
-                batteryHistory.push({ percentage: status.percentage, timestamp: moment().tz(data.getTimezone()) });
+                if (storeInHistory) {
+                    if (batteryHistory.length > batteryHistorySize) batteryHistory.shift();
+                    batteryHistory.push({ percentage: status.percentage, timestamp: moment().tz(data.getTimezone()) });
+                }
 
                 resolve({ percentage: status.percentage, isCharging: status.status === "CHARGING" });
             } catch (e) {

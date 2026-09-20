@@ -66,7 +66,7 @@ export async function checkBattery(): Promise<void> {
     let status: { percentage: number, isCharging: boolean };
 
     try {
-        status = await getBatteryStatus();
+        status = await getBatteryStatus(true);
     } catch (e) {
         utils.log("failed to check battery: " + e);
         return;

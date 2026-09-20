@@ -406,7 +406,7 @@ export const c = clear;
 export async function battery(message: discord.Message): Promise<void> {
     const bot = self();
     try {
-        const status = await getBatteryStatus();
+        const status = await getBatteryStatus(false);
         const history = getBatteryHistory();
 
         let listedHistory = `:hourglass: Battery history:\n`;
