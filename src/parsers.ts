@@ -1,4 +1,4 @@
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 
 export type RelativeTime = { 
     valid: false 

@@ -37,8 +37,10 @@ const maxLatestRemindersLength = 20;
 let timezone: string;
 let preferredChannel: string;
 
+let silenceTimestamp: number;
+
 export async function init(): Promise<void> {
-    db.connect(process.env.FIREBASE_CREDENTIALS, process.env.FIREBASE_URL);
+    db.connect(process.env.FIREBASE_CREDENTIALS || require("../firebase-credentials.json"), process.env.FIREBASE_URL);
     await loadImmediate();
 }
 
@@ -153,6 +155,15 @@ export async function setPreferredChannel(channel: string | null | undefined): P
 
 export function getPreferredChannel(): string | null {
     return preferredChannel;
+}
+
+export async function setSilenceTimestamp(timestamp: number): Promise<void> {
+    silenceTimestamp = timestamp;
+    await db.post("reminderconfig/silence", timestamp);
+}
+
+export function getSilenceTimestamp(): number | null {
+    return silenceTimestamp;
 }
 
 export async function generateId(): Promise<number> {

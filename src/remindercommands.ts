@@ -1,7 +1,7 @@
 import * as discord from 'discord.js';
 import * as utils from './utils';
 import * as data from './data';
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 import { loginTimestamp, self } from '.';
 import { getBatteryHistory, getBatteryStatus } from './battery';
 import { parseAbsoluteTime, parseRelativeTime } from './parsers';
@@ -42,6 +42,7 @@ export function help(message: discord.Message, args: string[]): void {
             .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
             .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
             .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
+            .addField(`${prefix}s / ${prefix}silent / ${prefix}silence`, "Silence low battery warnings for a while.")
             .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.")
             .addField(`${prefix}p / ${prefix}ping / ${prefix}u / ${prefix}uptime`, "Data about the current bot instance.");
     }
@@ -452,18 +453,48 @@ export async function timezone(message: discord.Message, args: string[]): Promis
     }
 
     const query = args.join("_").toLowerCase();
-    const match = utils.allTimezones().find(tz => tz.toLowerCase().includes(query));
+    const matches = utils.allTimezones().filter(tz => tz.toLowerCase().includes(query));
 
-    if (!match) {
+    if (matches.length === 0) {
         utils.send(message, "Could not find or partial match a timezone with that name.", bot);
         return;
     }
 
-    await data.setTimezone(match);
-    utils.send(message, `Set your timezone to \`${data.getTimezone()}\`.\nThe time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`, bot);
+    await data.setTimezone(matches[0]);
+
+    let response = `Set your timezone to \`${data.getTimezone()}\`.\nThe time there is ${moment.tz(data.getTimezone()).format("dddd, MMMM Do YYYY, HH:mm")}.`;
+    if (matches.length > 1) response += `\n\nOther partial matches: ${matches.slice(1, 10).map(tz => `\`${tz}\``).join(", ")}`;
+    utils.send(message, response, bot);
 }
 
 export const t = timezone;
+
+export async function silence(message: discord.Message, args: string[]): Promise<void> {
+    const bot = self();
+    const usage = `${utils.usage("silence", "date")}\n` +
+        "The 'date' should be something like 1d10h20m.\n\n" +
+        "This will make low battery warnings stop for that amount of time.";
+
+    if (args.length < 1) {
+        utils.send(message, `To silence low battery warnings, you can type:\n${usage}`, bot);
+        return;
+    }
+
+    const now = moment().tz(data.getTimezone());
+    const parsedDate = parseRelativeTime(now, args[0], data.getTimezone());
+
+    if (!parsedDate.valid) {
+        await utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        return;
+    }
+
+    const dateUtc = moment(parsedDate.date).utc().valueOf();
+    await data.setSilenceTimestamp(dateUtc);
+    utils.send(message, `Will silence all low battery warnings that would've happened until ${parsedDate.date.format("dddd, MMMM Do YYYY, HH:mm")}.`, bot);
+}
+
+export const s = silence;
+export const silent = silence;
 
 async function buildRelativeTimeReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<void> {
     const bot = self();

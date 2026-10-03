@@ -3,7 +3,7 @@ import * as discord from 'discord.js';
 import * as handler from './handler';
 import * as data from './data';
 import * as utils from './utils';
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 
 if (process.argv[2] !== "fromSh") {
     console.log("Make sure to run this bot using 'bash runner.sh' instead.");

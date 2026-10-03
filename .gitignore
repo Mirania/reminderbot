@@ -77,3 +77,4 @@ typings/
 
 built/
 env.txt
+firebase-credentials.json

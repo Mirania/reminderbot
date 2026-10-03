@@ -2,7 +2,7 @@ import * as utils from './utils';
 import * as discord from 'discord.js';
 import * as data from "./data";
 import * as events from "./events";
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 import { self } from '.';
 
 export function check(message: discord.Message): void {

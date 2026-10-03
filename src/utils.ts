@@ -1,5 +1,5 @@
 import * as discord from 'discord.js';
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 import * as data from './data';
 
 /**

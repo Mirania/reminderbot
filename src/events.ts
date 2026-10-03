@@ -1,7 +1,7 @@
 import * as utils from './utils';
 import * as discord from 'discord.js';
 import * as data from "./data";
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 import { self } from ".";
 import { BatteryStatus, getBatteryStatus } from './battery';
 
@@ -73,6 +73,12 @@ export async function checkBattery(): Promise<void> {
     }
 
     if (status.isCharging || status.percentage >= batteryLowThreshold) {
+        return;
+    }
+
+    const silenceTimestamp = data.getSilenceTimestamp();
+    if (silenceTimestamp != null && moment().tz(data.getTimezone()).utc().valueOf() <= silenceTimestamp) {
+        utils.log("low battery warning has been silenced - won't notify");
         return;
     }
 

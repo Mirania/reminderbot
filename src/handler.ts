@@ -5,7 +5,7 @@ import * as meta from './metacommands';
 import * as events from './events';
 import * as data from './data';
 import { setInterval } from 'timers';
-import * as moment from 'moment-timezone';
+import moment = require("moment-timezone");
 
 type CommandFunction = (message: discord.Message, args?: string[]) => void | Promise<void>;
 
