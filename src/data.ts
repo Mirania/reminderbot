@@ -64,6 +64,7 @@ export async function loadImmediate(): Promise<void> {
     latestId = await db.get("reminderconfig/latestId");
     timezone = await db.get("reminderconfig/timezone") ?? secrets.OWNER_TIMEZONE;
     preferredChannel = await db.get("reminderconfig/channel");
+    silenceTimestamp = await db.get("reminderconfig/silence");
 }
 
 /**
