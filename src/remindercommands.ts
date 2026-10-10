@@ -294,8 +294,10 @@ export async function list(message: discord.Message, args: string[]): Promise<vo
 
     const categories: { name: string, ends?: moment.Moment, npAnnounced?: boolean, pAnnounced?: boolean }[] = [
         { name: "Today", ends: moment(now).add(1, "day").set("hour", 0).set("minute", 0) },
-        { name: "Tomorrow", ends: moment(now).add(2, "day").set("hour", 0).set("minute", 0) },
-        { name: "This week", ends: moment(now).add(7, "day").set("hour", 0).set("minute", 0) },
+        { name: "Tomorrow", ends: moment(now).add(2, "days").set("hour", 0).set("minute", 0) },
+        { name: "This week", ends: moment(now).add(1, "week").set("hour", 0).set("minute", 0) },
+        { name: "This month", ends: moment(now).add(1, "month").set("hour", 0).set("minute", 0) },
+        { name: "This year", ends: moment(now).add(1, "year").set("hour", 0).set("minute", 0) },
         { name: "Later" }
     ];
 
