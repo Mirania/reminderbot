@@ -28,12 +28,13 @@ async function main() {
     bot.login(data.getSecrets().BOT_TOKEN);
 
     bot.on("ready", async () => {
+        _loginTimestamp = moment().tz(data.getTimezone());
         bot.user.setPresence({ activity: { name: `Reminder Bot - ${prefix}help` }, status: "dnd" });
+        utils.log("Bot is online.");
+
         handler.handleEvents();
         isReady = true;
-        _loginTimestamp = moment().tz(data.getTimezone());
-        utils.log("Bot is online.");
-    })
+    });
 
     bot.on("message", (message) => {
         if (!isReady || message.author.id === botId) return;

@@ -40,7 +40,7 @@ export function help(message: discord.Message, args: string[]): void {
             .addField(`${prefix}m / ${prefix}merge / ${prefix}concat`, "Merge multiple reminders into one.")
             .addField(`${prefix}l / ${prefix}list`, "List all active reminders.")
             .addField(`${prefix}c / ${prefix}clear`, "Remove a periodic reminder.")
-            .addField(`${prefix}t / ${prefix}timezone`, "Set the current timezone.")
+            .addField(`${prefix}t / ${prefix}tz / ${prefix}timezone`, "Set the current timezone.")
             .addField(`${prefix}b / ${prefix}battery`, "Check phone battery status.")
             .addField(`${prefix}s / ${prefix}silent / ${prefix}silence`, "Silence low battery warnings for a while.")
             .addField(`${prefix}k / ${prefix}kill`, "Kill the current bot instance and restart it.")
@@ -468,6 +468,7 @@ export async function timezone(message: discord.Message, args: string[]): Promis
 }
 
 export const t = timezone;
+export const tz = timezone;
 
 export async function silence(message: discord.Message, args: string[]): Promise<void> {
     const bot = self();

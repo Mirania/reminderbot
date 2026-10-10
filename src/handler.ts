@@ -16,11 +16,14 @@ const checkBatteryIntervalMs = utils.minutes(60);
 let _nextReminderCheck: moment.Moment;
 
 export function handleCommand(message: discord.Message): void {
-    const content = message.content.split(" ").filter(item => item!==""); 
-    const name = content[0].slice(1, content[0].length);
-    const args = content.splice(1, content.length);
+    const content = message.content.match(/(?:\n)?[^\s]*/g).filter(item => item !== ""); // splits by space and newline, preserves newlines
+    const name = content?.[0].slice(1, content[0].length);
+    const args = content?.splice(1, content.length) ?? [];
 
-    if (commandList[name]) commandList[name](message, args);
+    if (name != null && commandList[name]) {
+        utils.log(`command ['${name}'] args [${args.map(arg => `'${arg}'`).join(", ").replace(/\n/g, "\\n")}]`);
+        commandList[name](message, args);
+    }
 }
 
 export function handleEvents(): void {
