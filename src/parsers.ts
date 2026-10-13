@@ -1,4 +1,5 @@
 import moment = require("moment-timezone");
+import * as utils from "./utils";
 
 export type RelativeTime = { 
     valid: false 
@@ -10,16 +11,21 @@ export type RelativeTime = {
 
 export type AbsoluteTime = {
     valid: false,
-    isTimeInputted: boolean
+    isSecondArgInputted: boolean
 } | {
     valid: true, 
     date: moment.Moment, 
-    isTimeInputted: boolean
+    isSecondArgInputted: boolean
 };
 
+// 1a2b3c123def ...
+export const relativeTimeRegex = /^(\d+[A-Za-z]+)+$/;
+
 export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz: string): RelativeTime {
-    const tokens = relativeTime.match(/[0-9]+|[A-Za-z]+/g) ?? [,];
+    const tokens = relativeTime.match(/\d+|[A-Za-z]+/g) ?? [,];
     const timeValues: { [unit: string]: number } = {};
+
+    utils.log(`Tokens = ${JSON.stringify(tokens)}`);
 
     for (let i = 0; i < tokens.length; i += 2) {
         let value: number;
@@ -31,17 +37,19 @@ export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz
         timeValues[tokens[i + 1]] = value;
     }
 
+    utils.log(`Time values = ${JSON.stringify(timeValues)}`);
+
     const date = moment(start).tz(tz);
 
     for (const unit in timeValues) {
         const value = timeValues[unit];
         switch (unit) {
-            case "year": case "y": date.add(value, "year"); break;
+            case "year": case "yr": case "y": date.add(value, "year"); break;
             case "month": case "mo": date.add(value, "month"); break;
-            case "week": case "w": date.add(value, "week"); break;
+            case "week": case "wk": case "w": date.add(value, "week"); break;
             case "day": case "d": date.add(value, "day"); break;
-            case "hour": case "h": date.add(value, "hour"); break;
-            case "minute": case "m": date.add(value, "minute"); break;
+            case "hour": case "hr": case "h": date.add(value, "hour"); break;
+            case "minute": case "min": case "m": date.add(value, "minute"); break;
             default: return { valid: false };
         }
     }
@@ -50,29 +58,33 @@ export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz
 }
 
 export function parseAbsoluteTime(dateArg: string, timeArg: string | undefined, now: moment.Moment, tz: string): AbsoluteTime {
-    const { converted, isTimeInputted } = convertAbsoluteTimeRawInput(dateArg, timeArg, now);
+    const { converted, isSecondArgInputted } = convertAbsoluteTimeRawInput(dateArg, timeArg, now);
 
     if (!/[\d]{2}\/[\d]{2}\/[\d]{4} [\d]{2}:[\d]{2}/g.test(converted)) {
-        return { valid: false, isTimeInputted };
+        return { valid: false, isSecondArgInputted };
     }
 
     const date = moment.tz(converted, "DD/MM/YYYY HH:mm", tz);
 
-    return { valid: true, date, isTimeInputted };
+    return { valid: true, date, isSecondArgInputted };
 }
 
-function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefined, now: moment.Moment): { converted: string, isTimeInputted: boolean } {
-    let convertedDate = "invalid", convertedTime = "invalid", isTimeInputted = true;
+function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | undefined, now: moment.Moment): { converted: string, isSecondArgInputted: boolean } {
+    let convertedDate = "invalid", convertedTime = "invalid", isSecondArgInputted = true;
 
     const weekdayRegex = /^[A-Za-z]+$/;
     const shortDateRegex = /^([\d]{1,2})\/([\d]{1,2})$/;
-    const longDateRegex = /^([\d]{1,2})\/([\d]{1,2})\/([\d]{4})$/;
-    const shortTimeRegex = /^[\d]{1,2}[hH]$/;
+    const longDateRegex = /^([\d]{1,2})\/([\d]{1,2})\/([\d]{2}|[\d]{4})$/;
+    const shortTimeRegex = /^[\d]{1,2}[hH]?$/;
     const longTimeRegex = /^([\d]{1,2}):([\d]{2})$/;
 
-    if (weekdayRegex.test(dateArg)) {
+    // the first arg is certainly part of the absolute time definition, and it may be a date or a time
+
+    if (weekdayRegex.test(dateOrTimeArg)) {
+        // referring to a weekday by name
+        // example: sun
         let targetWeekday: number;
-        switch (dateArg.toLowerCase()) {
+        switch (dateOrTimeArg.toLowerCase()) {
             case "sun": case "sunday": targetWeekday = 0; break;
             case "mon": case "monday": targetWeekday = 1; break;
             case "tue": case "tuesday": targetWeekday = 2; break;
@@ -80,11 +92,12 @@ function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefine
             case "thu": case "thursday": targetWeekday = 4; break;
             case "fri": case "friday": targetWeekday = 5; break;
             case "sat": case "saturday": targetWeekday = 6; break;
-            case "tdy": case "today": targetWeekday = -2; break;
-            case "tmr": case "tmrw": case "tomorrow": targetWeekday = -3; break;
+            case "td": case "tdy": case "today": targetWeekday = -2; break;
+            case "tm": case "tmr": case "tmrw": case "tomorrow": targetWeekday = -3; break;
             default: targetWeekday = -1;
         }
         if (targetWeekday === -1) {
+            // unknown weekday
             convertedDate = "invalid";
         } else if (targetWeekday === -2) {
             convertedDate = moment(now).format("DD/MM/YYYY");
@@ -94,35 +107,66 @@ function convertAbsoluteTimeRawInput(dateArg: string, timeArg: string | undefine
             const currentWeekday = now.weekday();
             convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "day").format("DD/MM/YYYY");
         }
-    } else if (shortDateRegex.test(dateArg)) {
-        // 06/06 or 2/7
-        const match = dateArg.match(shortDateRegex);
+    } else if (shortDateRegex.test(dateOrTimeArg)) {
+        // this is a date. year is missing so we assume this is in the near future (this year or the next)
+        // example: 06/06 or 2/7
+        const match = dateOrTimeArg.match(shortDateRegex);
         const day = Number(match[1]), month = Number(match[2]);
         const year = (month > now.month() + 1 || (month === now.month() + 1 && day > now.date())) ? now.year() : now.year() + 1;
-        convertedDate = `${zeroPad(day)}/${zeroPad(month)}/${year}`;
-    } else if (longDateRegex.test(dateArg)) {
-        // 04/06/2025 or 7/6/2025
-        const match = dateArg.match(longDateRegex);
-        convertedDate = `${zeroPad(match[1])}/${zeroPad(match[2])}/${zeroPad(match[3])}`;
+        convertedDate = `${zeroPad(day)}/${zeroPad(month)}/${yearPad(year)}`;
+    } else if (longDateRegex.test(dateOrTimeArg)) {
+        // this is a date
+        // example: 04/06/2025 or 7/6/2025 or 02/1/25
+        const match = dateOrTimeArg.match(longDateRegex);
+        convertedDate = `${zeroPad(match[1])}/${zeroPad(match[2])}/${yearPad(match[3])}`;
+    } else if (shortTimeRegex.test(dateOrTimeArg)) {
+        // this is a time. date is missing so we assume this is in the near future (today or tomorrow)
+        // example: 21 or 21h
+        const hour = Number(dateOrTimeArg.toLowerCase().endsWith("h") ? dateOrTimeArg.substring(0, dateOrTimeArg.length - 1) : dateOrTimeArg);
+        const date = now.hour() >= hour ? moment(now).add(1, "day") : now;
+        convertedDate = date.format("DD/MM/YYYY");
+        convertedTime = `${zeroPad(dateOrTimeArg)}:00`;
+    } else if (longTimeRegex.test(dateOrTimeArg)) {
+        // this is a time. date is missing so we assume this is in the near future (today or tomorrow)
+        // 04:00 or 7:15
+        const match = dateOrTimeArg.match(longTimeRegex);
+        const hour = Number(match[1]), minute = Number(match[2]);
+        const date = (now.hour() > hour || (now.hour() === hour && now.minute() >= minute)) ? moment(now).add(1, "day") : now;
+        convertedDate = date.format("DD/MM/YYYY");
+        convertedTime = `${zeroPad(hour)}:${zeroPad(minute)}`;
     }
 
-    if (shortTimeRegex.test(timeArg)) {
-        // 8h or 14h
-        convertedTime = `${zeroPad(timeArg)}:00`;
+    // the second arg might not be part of the absolute time definition; if it is, it may only be a time
+
+    if (convertedTime !== "invalid") {
+        // first arg already successfully parsed as a time, no need to check second arg
+        isSecondArgInputted = false;
+    } else if (shortTimeRegex.test(timeArg)) {
+        // this is a time
+        // 8 or 8h or 14h
+        const time = timeArg.toLowerCase().endsWith("h") ? timeArg.substring(0, timeArg.length - 1) : timeArg;
+        convertedTime = `${zeroPad(time)}:00`;
     } else if (longTimeRegex.test(timeArg)) {
+        // this is a time
         // 04:00 or 7:15
         const match = timeArg.match(longTimeRegex);
-        convertedTime = `${zeroPad(match[1])}:${match[2]}`;
+        convertedTime = `${zeroPad(match[1])}:${zeroPad(match[2])}`;
     } else {
-        // no time supplied
+        // no second arg supplied
         convertedTime = "06:00";
-        isTimeInputted = false;
+        isSecondArgInputted = false;
     }
 
-    return { converted: `${convertedDate} ${convertedTime}`, isTimeInputted };
+    utils.log(`Converted date = ${convertedDate}, converted time = ${convertedTime}, secong arg inputted? = ${isSecondArgInputted}`);
+    return { converted: `${convertedDate} ${convertedTime}`, isSecondArgInputted: isSecondArgInputted };
 }
 
 function zeroPad(n: number | string) {
     const parsed = typeof n === "number" ? n : parseInt(n);
     return parsed < 10 ? `0${parsed}` : `${parsed}`;
+}
+
+function yearPad(n: number | string) {
+    const parsed = typeof n === "number" ? n : parseInt(n);
+    return parsed < 10 ? `200${parsed}` : parsed < 100 ? `20${parsed}` : `${parsed}`;
 }

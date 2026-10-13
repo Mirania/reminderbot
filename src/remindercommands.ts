@@ -4,7 +4,7 @@ import * as data from './data';
 import moment = require("moment-timezone");
 import { loginTimestamp, self } from '.';
 import { getBatteryHistory, getBatteryStatus } from './battery';
-import { parseAbsoluteTime, parseRelativeTime } from './parsers';
+import { parseAbsoluteTime, parseRelativeTime, relativeTimeRegex } from './parsers';
 import { nextReminderCheck } from './handler';
 
 type ReminderBuilderSettings = Partial<{
@@ -30,6 +30,7 @@ export function help(message: discord.Message, args: string[]): void {
             .addField(`${prefix}channel`, "Set which channel pings should be sent in (empty = mirror the reminder's channel).")
             .addField(`${prefix}backup`, "Generate a backup of current memory.")
             .addField(`${prefix}invite`, "Generate an invite link.")
+            .addField(`${prefix}logs`, "Show the latest application logs.")
             .addField(`${prefix}split`, "Split a number proportionally between months.");
     } else {
         embed.setTitle(`Here's what I can do! Type \`${prefix}help hidden\` for some secret commands.`)
@@ -69,7 +70,7 @@ export const u = uptime;
 export const p = uptime;
 export const ping = uptime;
 
-export function reminder(message: discord.Message, args: string[]): void {
+export async function reminder(message: discord.Message, args: string[]): Promise<void> {
     const bot = self();
     const usage = `${utils.usage("reminder", "in/at date message")}\n` +
         "For relative time (in), 'date' should be something like 1d10h20m.\n\n" +
@@ -86,25 +87,14 @@ export function reminder(message: discord.Message, args: string[]): void {
 
     const settings: ReminderBuilderSettings = {};
 
-    if (args[0] === "in") {
-        buildRelativeTimeReminder(message, args, settings);
-    } else if (args[0] === "at") {
-        buildAbsoluteTimeReminder(message, args, settings);
-    } else if (args[0]) {
-        if (/^[A-Za-z]+$/.test(args[0]) || args[0].includes("/")) {
-            buildAbsoluteTimeReminder(message, ["at", ...args], settings);
-        } else {
-            buildRelativeTimeReminder(message, ["in", ...args], settings);
-        }
-    } else {
+    if (!(await inferAndBuildReminder(message, args, settings))) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
-        return;
-    }  
+    } 
 }
 
 export const r = reminder;
 
-export function periodicreminder(message: discord.Message, args: string[]): void {
+export async function periodicreminder(message: discord.Message, args: string[]): Promise<void> {
     const bot = self();
     const usage = `${utils.usage("periodicreminder", "times in/at date repeat periodicity message")}\n` +
         "The 'times' is **optional** (not provided = renew the reminder forever) and should be something like 8 or 15x.\n" +
@@ -137,33 +127,24 @@ export function periodicreminder(message: discord.Message, args: string[]): void
         echoReminder: false
     };
 
-    if (args[dateArgStartIndex] === "in") {
-        buildRelativeTimeReminder(message, [...dateArgs, ...text], settings);
-    } else if (args[dateArgStartIndex] === "at") {
-        buildAbsoluteTimeReminder(message, [...dateArgs, ...text], settings);
-    } else if (args[0]) {
-        if (/^[A-Za-z]+$/.test(args[dateArgStartIndex]) || args[dateArgStartIndex].includes("/")) {
-            buildAbsoluteTimeReminder(message, ["at", ...dateArgs, ...text], settings);
-        } else {
-            buildRelativeTimeReminder(message, ["in", ...dateArgs, ...text], settings);
-        }
-    } else {
+    if (!(await inferAndBuildReminder(message, [...dateArgs, ...text], settings))) {
         utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
-        return;
     }
 }
 
 export const pr = periodicreminder;
 
-export function delay(message: discord.Message, args: string[]): void {
+export async function delay(message: discord.Message, args: string[]): Promise<void> {
     const bot = self();
-    const usage = `${utils.usage("delay", "date")}\n` +
+    const usage = `${utils.usage("delay", "reminder in/at date")}\n` +
+        "The 'reminder' is the id of the reminder to delay, like 1234 1d10h20m. If not supplied, I'll delay the latest announced reminder.\n" +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
-        "You can also specify the id of the reminder to delay, like 1234 1d10h20m.";
+        "Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
-    const targetId: number | null = (args.length > 0 && /^[0-9]+$/.test(args[0])) ? parseInt(args[0]) : null;
+    const targetIdIndex = args[0] === "in" || args[0] === "at" ? 1 : 0;
+    const targetId: number | null = (args.length > targetIdIndex && /^[0-9]+$/.test(args[targetIdIndex])) ? parseInt(args[targetIdIndex]) : null;
 
-    if (args.length < (targetId != null ? 2 : 1)) {
+    if (args.length < (targetId != null ? targetIdIndex + 2 : targetIdIndex + 1)) {
         utils.send(message, `To delay a reminder, you can type:\n${usage}`, bot);
         return;
     }
@@ -179,11 +160,10 @@ export function delay(message: discord.Message, args: string[]): void {
         echoReminder: true
     };
 
-    const timeArgs = targetId != null ? args.slice(1) : args;
-    if (/^[A-Za-z]+$/.test(timeArgs[0]) || timeArgs[0].includes("/")) {
-        buildAbsoluteTimeReminder(message, ["at", ...timeArgs, toDelay.message], settings);
-    } else {
-        buildRelativeTimeReminder(message, ["in", ...timeArgs, toDelay.message], settings);
+    const dateArgs = targetId != null ? args.slice(1) : args;
+
+    if (!(await inferAndBuildReminder(message, [...dateArgs, toDelay.message], settings))) {
+        utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
     }
 }
 
@@ -191,9 +171,10 @@ export const d = delay;
 
 export async function merge(message: discord.Message, args: string[]): Promise<void> {
     const bot = self();
-    const usage = `${utils.usage("merge", "reminder1 reminder2 reminder3 reminderX... date")}\n` +
+    const usage = `${utils.usage("merge", "reminder1 reminder2 reminder3 reminderX... in/at date")}\n` +
         "The 'date' should be something like 1d10h20m or 01/01/2025 01:00.\n" +
-        "Specify the ids of all the reminders you would like to merge into a single one.";
+        "Specify the ids of all the reminders you would like to merge into a single one.\n" +
+        "Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
     const targetIds: number[] = [];
     for (const arg of args) {
@@ -221,11 +202,9 @@ export async function merge(message: discord.Message, args: string[]): Promise<v
         echoReminder: true
     };
 
-    const timeArgs = args.slice(targets.length);
-    if (/^[A-Za-z]+$/.test(timeArgs[0]) || timeArgs[0].includes("/")) {
-        await buildAbsoluteTimeReminder(message, ["at", ...timeArgs, mergedMessage], settings);
-    } else {
-        await buildRelativeTimeReminder(message, ["in", ...timeArgs, mergedMessage], settings);
+    const dateArgs = args.slice(targets.length);
+    if (!(await inferAndBuildReminder(message, [...dateArgs, mergedMessage], settings))) {
+        await utils.send(message, `To set a reminder, you can type:\n${usage}`, bot);
     }
 
     // now delete the original reminders that we just merged into one
@@ -499,6 +478,34 @@ export async function silence(message: discord.Message, args: string[]): Promise
 export const s = silence;
 export const silent = silence;
 
+async function inferAndBuildReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<boolean> {
+    try {
+        if (args[0] === "in") {
+            await buildRelativeTimeReminder(message, args.slice(1), settings);
+            return true;
+        } else if (args[0] === "at") {
+            await buildAbsoluteTimeReminder(message, args.slice(1), settings);
+            return true;
+        } else if (args[0] != null && args[0] !== "") {
+            if (relativeTimeRegex.test(args[0])) {
+                utils.log(`Based on '${args[0]}', assuming this is a relative time.`);
+                await buildRelativeTimeReminder(message, args, settings);
+                return true;
+            } else {
+                utils.log(`Based on '${args[0]}', assuming this is an absolute time.`);
+                await buildAbsoluteTimeReminder(message, args, settings);
+                return true;
+            }
+        } else {
+            utils.log(`Based on '${args[0]}', I could not infer the type of reminder at all.`);
+            return false;
+        }
+    } catch (e) {
+        utils.log("Failed to infer and build a reminder: " + e);
+        return false;
+    }
+}
+
 async function buildRelativeTimeReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<void> {
     const bot = self();
 
@@ -512,19 +519,21 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
         "You can use the units `year/y`, `month/mo`, `week/w`, `day/d`, `hour/h`, and `minute/m`.\n" +
         "You can also omit the `in`. If your input is correct I'll still know what to do.";
 
-    if (args.length < 3) {
+    if (args.length < 2) {
         await utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
     const isPeriodic = settings.periodicity != null;
     const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseRelativeTime(now, args[1], data.getTimezone());
+    const parsedDate = parseRelativeTime(now, args[0], data.getTimezone());
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
+    utils.log(`Parsed date = ${JSON.stringify(parsedDate)}, times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
+
     if (!parsedDate.valid) {
-        await utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        await utils.send(message, `The time \`${args[0]}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
@@ -539,7 +548,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     }
 
     const dateUtc = moment(parsedDate.date).utc().valueOf();
-    const text = args.slice(2).join(" ");
+    const text = args.slice(1).join(" ");
 
     if (text.length > data.maxReminderLength()) {
         await utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of ${data.maxReminderLength()}!`, bot);
@@ -572,9 +581,10 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
 
     await data.setReminder(reminder);
 
+    const relativeTime = utils.getRelativeTimeString(now, parsedDate.date);
     let response = `Your reminder with id \`${id}\``;
     if (settings.echoReminder) response += ` '${reminder.text.replace(/\n/g, " ")}'`;
-    response += ` has been set for ${absoluteTimeString}`;
+    response += ` has been set for ${absoluteTimeString} \`(in ${relativeTime})\``;
     if (isPeriodic) response += ` and will repeat every **${reminder.rawTime}**`;
     if (isPeriodic && settings.times) response += `, with **${parsedTimes}x** ${parsedTimes === 1 ? 'ping' : 'pings'} to go`;
     response += "!";
@@ -598,19 +608,21 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "Instead of 31/01/2030 you could also use sun, sunday, mon, monday... this means the next sunday/monday/etc.\n" +
         "You can also omit the `at`. If your input is correct I'll still know what to do.";
 
-    if (args.length < 3) {
+    if (args.length < 2) {
         await utils.send(message, `Missing arguments... To set a reminder, you can type:\n${usage}`, bot);
         return;
     }
 
     const isPeriodic = settings.periodicity != null;
     const now = moment().tz(data.getTimezone()), nowUtc = moment(now).utc().valueOf();
-    const parsedDate = parseAbsoluteTime(args[1], args[2], now, data.getTimezone());
+    const parsedDate = parseAbsoluteTime(args[0], args[1], now, data.getTimezone());
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
+    utils.log(`Parsed date = ${JSON.stringify(parsedDate)}, times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
+
     if (!parsedDate.valid) {
-        await utils.send(message, `The time \`${args[1]}${parsedDate.isTimeInputted ? " " + args[2] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
         return;
     }
 
@@ -625,7 +637,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     }
 
     const dateUtc = moment(parsedDate.date).utc().valueOf();
-    const text = args.slice(parsedDate.isTimeInputted ? 3 : 2).join(" ");
+    const text = args.slice(parsedDate.isSecondArgInputted ? 2 : 1).join(" ");
 
     if (text.length > data.maxReminderLength()) {
         await utils.send(message, `That message is way too long, \`${text.length}\` characters is more than the maximum of ${data.maxReminderLength()}!`, bot);

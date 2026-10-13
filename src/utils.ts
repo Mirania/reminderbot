@@ -162,8 +162,13 @@ export function allTimezones(): string[] {
 /**
  * Prints a message to the console.
  */
-export function log(text: string): void {
-    console.log(`[${moment().tz(data.getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`);
+export function log(text: string, storeInHistory: boolean = true): void {
+    const line = `[${moment().tz(data.getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`;
+    console.log(line);
+
+    if (storeInHistory) {
+        data.appendToLogHistory(line);
+    }
 }
 
 /**

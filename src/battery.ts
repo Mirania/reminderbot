@@ -6,7 +6,7 @@ import moment = require("moment-timezone");
 export type BatteryStatus = { percentage: number, isCharging: boolean };
 export type BatteryHistoryEntry = { percentage: number, timestamp: moment.Moment };
 
-let batteryHistory: BatteryHistoryEntry[] = [];
+const batteryHistory: BatteryHistoryEntry[] = [];
 const batteryHistorySize = 5;
 
 export function getBatteryStatus(storeInHistory: boolean): Promise<BatteryStatus> {

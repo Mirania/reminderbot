@@ -39,6 +39,9 @@ let preferredChannel: string;
 
 let silenceTimestamp: number;
 
+const logHistory: string[] = [];
+const logHistorySize = 15;
+
 export async function init(): Promise<void> {
     db.connect(process.env.FIREBASE_CREDENTIALS || require("../firebase-credentials.json"), process.env.FIREBASE_URL);
     await loadImmediate();
@@ -165,6 +168,15 @@ export async function setSilenceTimestamp(timestamp: number): Promise<void> {
 
 export function getSilenceTimestamp(): number | null {
     return silenceTimestamp;
+}
+
+export function appendToLogHistory(line: string): void {
+    if (logHistory.length > logHistorySize) logHistory.shift();
+    logHistory.push(line);
+}
+
+export function getLogHistory(): string[] {
+    return logHistory;
 }
 
 export async function generateId(): Promise<number> {

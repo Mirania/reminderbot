@@ -46,6 +46,12 @@ export function invite(message: discord.Message): void {
     utils.send(message, `Here you go!\n\n${link}`, self());
 }
 
+export function logs(message: discord.Message): void {
+    let logs = data.getLogHistory().join("\n");
+    logs = logs.length > 1950 ? "..." + logs.slice(-1950) : logs;
+    utils.send(message, `\`\`\`\n${logs}\`\`\``, self());
+}
+
 export function split(message: discord.Message, args: string[]): void {
     const bot = self();
     const usage = `${utils.usage("split", "startdate enddate number")}\n` +
