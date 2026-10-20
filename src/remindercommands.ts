@@ -31,7 +31,9 @@ export function help(message: discord.Message, args: string[]): void {
             .addField(`${prefix}backup`, "Generate a backup of current memory.")
             .addField(`${prefix}invite`, "Generate an invite link.")
             .addField(`${prefix}logs`, "Show the latest application logs.")
-            .addField(`${prefix}split`, "Split a number proportionally between months.");
+            .addField(`${prefix}split`, "Split a number proportionally between months.")
+            .addField(`${prefix}conv / ${prefix}convert`, "Time <-> money conversion.")
+            .addField(`${prefix}drop / ${prefix}droprate`, "Chance of getting x drops in y kills.");
     } else {
         embed.setTitle(`Here's what I can do! Type \`${prefix}help hidden\` for some secret commands.`)
             .addField(`${prefix}r / ${prefix}reminder`, "Set a reminder.")

@@ -24,6 +24,7 @@ export type Secrets = {
     readonly OWNER_IDS: string[];
     readonly OWNER_TIMEZONE: string;
     readonly REMINDER_ROLE: string;
+    readonly HOUR_RATE: string;
 };
 
 let reminders: { [key: string]: Reminder } = {};
@@ -59,7 +60,8 @@ export async function loadImmediate(): Promise<void> {
         BOT_PERMS: rawSecrets.BOT_PERMS,
         OWNER_IDS: rot.decrypt(rawSecrets.OWNER_IDS, rawSecrets.ROT).split(","),
         OWNER_TIMEZONE: rawSecrets.OWNER_TIMEZONE,
-        REMINDER_ROLE: rawSecrets.REMINDER_ROLE
+        REMINDER_ROLE: rawSecrets.REMINDER_ROLE,
+        HOUR_RATE: rawSecrets.HOUR_RATE
     };
 
     reminders = await db.get("reminders/") ?? {};

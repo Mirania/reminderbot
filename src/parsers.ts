@@ -50,6 +50,7 @@ export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz
             case "day": case "d": date.add(value, "day"); break;
             case "hour": case "hr": case "h": date.add(value, "hour"); break;
             case "minute": case "min": case "m": date.add(value, "minute"); break;
+            case "second": case "sec": case "s": date.add(value, "second"); break;
             default: return { valid: false };
         }
     }

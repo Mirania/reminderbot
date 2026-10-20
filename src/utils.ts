@@ -137,6 +137,13 @@ export function mentionChannel(channelId: string): string {
 }
 
 /**
+ * Returns an amount of hours in ms.
+ */
+export function hours(amount: number): number {
+    return amount * 60 * 60 * 1000;
+}
+
+/**
  * Returns an amount of minutes in ms.
  */
 export function minutes(amount: number): number {
