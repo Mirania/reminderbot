@@ -139,7 +139,7 @@ export function convert(message: discord.Message, args: string[]): void {
         }
 
         const diffMs = utils.hours(1) * parsed / rate;
-        const time = utils.getRelativeTimeString(now, moment(now).add(diffMs, "milliseconds"));
+        const time = utils.getRelativeTimeString(now, moment(now).add(diffMs, "milliseconds"), true);
 
         utils.send(message, `\`${prettyPrintMoney(parsed)}\` at \`${rate}/h\` is equivalent to **${time}**!`, bot);
     }

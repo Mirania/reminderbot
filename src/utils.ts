@@ -259,6 +259,7 @@ export function getRelativeTimeString(past: moment.Moment, future: moment.Moment
         if (secondDiff > 0) {
             return prepareTimeUnit('second', secondDiff);
         }
+        return "less than a second";
     }
     return "less than a minute";
 }
