@@ -1,9 +1,13 @@
 import moment = require("moment");
 import { AbsoluteTime, RelativeTime, parseAbsoluteTime, parseRelativeTime } from "../parsers";
+import { mockSecrets } from "../data";
 
 let passed = 0;
 
 const tz = "Europe/Lisbon";
+mockSecrets({
+    OWNER_TIMEZONE: tz
+});
 
 function momentFrom(string: string) {
     return moment.tz(string, "DD/MM/YYYY HH:mm", tz);
@@ -100,9 +104,9 @@ assertAbsoluteTime({ valid: true, date: momentFrom("04/02/2025 11:05"), isSecond
 assertAbsoluteTime({ valid: true, date: momentFrom("05/02/2025 11:05"), isSecondArgInputted: true },
     parseAbsoluteTime("wed", "11:05", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("06/02/2025 11:05"), isSecondArgInputted: true },
-    parseAbsoluteTime("thursday", "11:05", now, tz));
+    parseAbsoluteTime("thur", "11:05", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("07/02/2025 11:05"), isSecondArgInputted: true },
-    parseAbsoluteTime("friday", "11:05", now, tz));
+    parseAbsoluteTime("fri", "11:05", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("08/02/2025 11:05"), isSecondArgInputted: true },
     parseAbsoluteTime("sat", "11:05", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("02/02/2025 11:05"), isSecondArgInputted: true },
@@ -113,6 +117,30 @@ assertAbsoluteTime({ valid: true, date: momentFrom("03/02/2025 06:00"), isSecond
     parseAbsoluteTime("tmrw", undefined, now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("07/02/2025 06:00"), isSecondArgInputted: false },
     parseAbsoluteTime("fri", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/01/2026 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("jan", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/02/2026 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("feb", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/03/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("mar", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/04/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("apr", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/05/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("may", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/06/2025 16:00"), isSecondArgInputted: true },
+    parseAbsoluteTime("jun", "16h", now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/07/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("jul", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/08/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("aug", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/09/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("sept", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/10/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("oct", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/11/2025 06:00"), isSecondArgInputted: false },
+    parseAbsoluteTime("nov", undefined, now, tz));
+assertAbsoluteTime({ valid: true, date: momentFrom("01/12/2025 05:55"), isSecondArgInputted: true },
+    parseAbsoluteTime("dec", "5:55", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("03/02/2025 07:15"), isSecondArgInputted: true },
     parseAbsoluteTime("03/02", "7:15", now, tz));
 assertAbsoluteTime({ valid: true, date: momentFrom("03/02/2025 04:00"), isSecondArgInputted: true },

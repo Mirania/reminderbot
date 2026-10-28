@@ -73,7 +73,7 @@ export function parseAbsoluteTime(dateArg: string, timeArg: string | undefined, 
 function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | undefined, now: moment.Moment): { converted: string, isSecondArgInputted: boolean } {
     let convertedDate = "invalid", convertedTime = "invalid", isSecondArgInputted = true;
 
-    const weekdayRegex = /^[A-Za-z]+$/;
+    const monthOrWeekdayRegex = /^[A-Za-z]+$/;
     const shortDateRegex = /^([\d]{1,2})\/([\d]{1,2})$/;
     const longDateRegex = /^([\d]{1,2})\/([\d]{1,2})\/([\d]{2}|[\d]{4})$/;
     const shortTimeRegex = /^[\d]{1,2}[hH]?$/;
@@ -81,32 +81,34 @@ function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | un
 
     // the first arg is certainly part of the absolute time definition, and it may be a date or a time
 
-    if (weekdayRegex.test(dateOrTimeArg)) {
-        // referring to a weekday by name
-        // example: sun
-        let targetWeekday: number;
+    if (monthOrWeekdayRegex.test(dateOrTimeArg)) {
+        // referring to a month or weekday by name
+        // example: sun, dec
         switch (dateOrTimeArg.toLowerCase()) {
-            case "sun": case "sunday": targetWeekday = 0; break;
-            case "mon": case "monday": targetWeekday = 1; break;
-            case "tue": case "tuesday": targetWeekday = 2; break;
-            case "wed": case "wednesday": targetWeekday = 3; break;
-            case "thu": case "thursday": targetWeekday = 4; break;
-            case "fri": case "friday": targetWeekday = 5; break;
-            case "sat": case "saturday": targetWeekday = 6; break;
-            case "td": case "tdy": case "today": targetWeekday = -2; break;
-            case "tm": case "tmr": case "tmrw": case "tomorrow": targetWeekday = -3; break;
-            default: targetWeekday = -1;
-        }
-        if (targetWeekday === -1) {
-            // unknown weekday
-            convertedDate = "invalid";
-        } else if (targetWeekday === -2) {
-            convertedDate = moment(now).format("DD/MM/YYYY");
-        } else if (targetWeekday === -3) {
-            convertedDate = moment(now).add(1, "day").format("DD/MM/YYYY");
-        } else {
-            const currentWeekday = now.weekday();
-            convertedDate = moment(now).add(targetWeekday > currentWeekday ? targetWeekday - currentWeekday : targetWeekday + 7 - currentWeekday, "day").format("DD/MM/YYYY");
+            // some weekday
+            case "sunday": case "sun": convertedDate = getNextWeekdayFormatted(0, now); break;
+            case "monday": case "mon": convertedDate = getNextWeekdayFormatted(1, now); break;
+            case "tuesday": case "tue": case "tues": convertedDate = getNextWeekdayFormatted(2, now); break;
+            case "wednesday": case "wed": convertedDate = getNextWeekdayFormatted(3, now); break;
+            case "thursday": case "thu": case "thur": convertedDate = getNextWeekdayFormatted(4, now); break;
+            case "friday": case "fri": convertedDate = getNextWeekdayFormatted(5, now); break;
+            case "saturday": case "sat": convertedDate = getNextWeekdayFormatted(6, now); break;
+            case "today": case "td": case "tdy": convertedDate = moment(now).format("DD/MM/YYYY"); break;
+            case "tomorrow": case "tm": case "tmr": case "tmrw": convertedDate = moment(now).add(1, "day").format("DD/MM/YYYY"); break;
+            // day 1 of some month
+            case "january": case "jan": convertedDate = getNextMonthFormatted(0, now); break;
+            case "february": case "feb": convertedDate = getNextMonthFormatted(1, now); break;
+            case "march": case "mar": convertedDate = getNextMonthFormatted(2, now); break;
+            case "april": case "apr": convertedDate = getNextMonthFormatted(3, now); break;
+            case "may": convertedDate = getNextMonthFormatted(4, now); break;
+            case "june": case "jun": convertedDate = getNextMonthFormatted(5, now); break;
+            case "july": case "jul": convertedDate = getNextMonthFormatted(6, now); break;
+            case "august": case "aug": convertedDate = getNextMonthFormatted(7, now); break;
+            case "september": case "sep": case "sept": convertedDate = getNextMonthFormatted(8, now); break;
+            case "october": case "oct": convertedDate = getNextMonthFormatted(9, now); break;
+            case "november": case "nov": convertedDate = getNextMonthFormatted(10, now); break;
+            case "december": case "dec": convertedDate = getNextMonthFormatted(11, now); break;
+            // default -> date stays invalid
         }
     } else if (shortDateRegex.test(dateOrTimeArg)) {
         // this is a date. year is missing so we assume this is in the near future (this year or the next)
@@ -160,6 +162,18 @@ function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | un
 
     utils.log(`Converted date = ${convertedDate}, converted time = ${convertedTime}, secong arg inputted? = ${isSecondArgInputted}`);
     return { converted: `${convertedDate} ${convertedTime}`, isSecondArgInputted: isSecondArgInputted };
+}
+
+// weekdays 0-6
+function getNextWeekdayFormatted(weekday: number, now: moment.Moment) {
+    const currentWeekday = now.weekday();
+    return moment(now).add(weekday > currentWeekday ? weekday - currentWeekday : weekday + 7 - currentWeekday, "day").format("DD/MM/YYYY");
+}
+
+// months 0-11
+function getNextMonthFormatted(month: number, now: moment.Moment) {
+    const currentMonth = now.month();
+    return moment(now).set("date", 1).add(month > currentMonth ? month - currentMonth : month + 12 - currentMonth, "month").format("DD/MM/YYYY");
 }
 
 function zeroPad(n: number | string) {

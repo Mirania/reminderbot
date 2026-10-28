@@ -141,6 +141,10 @@ export function getUnannouncedReminderMessage(id: number | null): IdAndMessagePa
     return reminder != null ? {id, message: reminder.text} : undefined;
 }
 
+export function mockSecrets(mock: any) {
+    secrets = mock;
+}
+
 export function getSecrets(): Secrets {
     return secrets;
 }

@@ -170,7 +170,7 @@ export function allTimezones(): string[] {
  * Prints a message to the console.
  */
 export function log(text: string, storeInHistory: boolean = true): void {
-    const line = `[${moment().tz(data.getTimezone()).format("DD-MM-YYYY HH:mm:ss")}] ${text}`;
+    const line = `[${moment().tz(data.getTimezone() ?? data.getSecrets().OWNER_TIMEZONE).format("DD-MM-YYYY HH:mm:ss")}] ${text}`;
     console.log(line);
 
     if (storeInHistory) {
