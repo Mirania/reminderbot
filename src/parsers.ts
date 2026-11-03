@@ -21,23 +21,28 @@ export type AbsoluteTime = {
 // 1a2b3c123def ...
 export const relativeTimeRegex = /^(\d+[A-Za-z]+)+$/;
 
+export function isRelativeTime(time: RelativeTime | AbsoluteTime | null | undefined): time is RelativeTime {
+    return time != null && typeof time['isSecondArgInputted'] !== "boolean";
+}
+
+export function isAbsoluteTime(time: RelativeTime | AbsoluteTime | null | undefined): time is AbsoluteTime {
+    return time != null && typeof time['isSecondArgInputted'] === "boolean";
+}
+
 export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz: string): RelativeTime {
     const tokens = relativeTime.match(/\d+|[A-Za-z]+/g) ?? [,];
     const timeValues: { [unit: string]: number } = {};
-
-    utils.log(`Tokens = ${JSON.stringify(tokens)}`);
 
     for (let i = 0; i < tokens.length; i += 2) {
         let value: number;
 
         if (i + 1 >= tokens.length || timeValues[tokens[i + 1]] != undefined || isNaN(value = Number(tokens[i])) || value <= 0) {
+            utils.log(`Converted datetime = invalid`);
             return { valid: false };
         }
 
         timeValues[tokens[i + 1]] = value;
     }
-
-    utils.log(`Time values = ${JSON.stringify(timeValues)}`);
 
     const date = moment(start).tz(tz);
 
@@ -55,11 +60,12 @@ export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz
         }
     }
 
+    utils.log(`Converted datetime = ${date.format("DD/MM/YYYY HH:mm")}, time values = ${JSON.stringify(timeValues)}`);
     return { valid: true, date, timeValues };
 }
 
-export function parseAbsoluteTime(dateArg: string, timeArg: string | undefined, now: moment.Moment, tz: string): AbsoluteTime {
-    const { converted, isSecondArgInputted } = convertAbsoluteTimeRawInput(dateArg, timeArg, now);
+export function parseAbsoluteTime(dateOrTimeArg: string, timeArg: string | undefined, now: moment.Moment, tz: string): AbsoluteTime {
+    const { converted, isSecondArgInputted } = convertAbsoluteTimeRawInput(dateOrTimeArg, timeArg, now);
 
     if (!/[\d]{2}\/[\d]{2}\/[\d]{4} [\d]{2}:[\d]{2}/g.test(converted)) {
         return { valid: false, isSecondArgInputted };

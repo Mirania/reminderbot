@@ -4,13 +4,13 @@ import * as data from './data';
 import moment = require("moment-timezone");
 import { loginTimestamp, self } from '.';
 import { getBatteryHistory, getBatteryStatus } from './battery';
-import { parseAbsoluteTime, parseRelativeTime, relativeTimeRegex } from './parsers';
+import { AbsoluteTime, isRelativeTime, parseAbsoluteTime, parseRelativeTime, RelativeTime, relativeTimeRegex } from './parsers';
 import { nextReminderCheck } from './handler';
 
 type ReminderBuilderSettings = Partial<{
-    times: string | null;
-    periodicity: string | null;
-    echoReminder: boolean | null;
+    times: string | null; // announce it how many times? default is 1.
+    periodicity: string | null; // interval between renewals of this periodic reminder? default is no interval (= not periodic)
+    echoReminder: boolean | null; // echo the reminder's text back to the user? default is false.
 }>;
 
 export function help(message: discord.Message, args: string[]): void {
@@ -464,11 +464,13 @@ export async function silence(message: discord.Message, args: string[]): Promise
         return;
     }
 
-    const now = moment().tz(data.getTimezone());
-    const parsedDate = parseRelativeTime(now, args[0], data.getTimezone());
-
+    const parsedDate = inferAndParseTime(args);
     if (!parsedDate.valid) {
-        await utils.send(message, `The time \`${args[1]}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        if (isRelativeTime(parsedDate)) {
+            await utils.send(message, `The time \`${args[0]}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        } else {
+            await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        }
         return;
     }
 
@@ -479,6 +481,31 @@ export async function silence(message: discord.Message, args: string[]): Promise
 
 export const s = silence;
 export const silent = silence;
+
+function inferAndParseTime(args: string[]): RelativeTime | AbsoluteTime {
+    try {
+        const now = moment().tz(data.getTimezone());
+        if (args[0] === "in") {
+            return parseRelativeTime(now, args[1], data.getTimezone());
+        } else if (args[0] === "at") {
+            return parseAbsoluteTime(args[1], args[2], now, data.getTimezone());
+        } else if (args[0] != null && args[0] !== "") {
+            if (relativeTimeRegex.test(args[0])) {
+                utils.log(`Based on '${args[0]}', assuming this is a relative time.`);
+                return parseRelativeTime(now, args[0], data.getTimezone());
+            } else {
+                utils.log(`Based on '${args[0]}', assuming this is an absolute time.`);
+                return parseAbsoluteTime(args[0], args[1], now, data.getTimezone());
+            }
+        } else {
+            utils.log(`Based on '${args[0]}', I could not infer the type of reminder at all.`);
+            return { valid: false };
+        }
+    } catch (e) {
+        utils.log("Failed to infer and parse a time: " + e);
+        return { valid: false };
+    }
+}
 
 async function inferAndBuildReminder(message: discord.Message, args: string[], settings: ReminderBuilderSettings): Promise<boolean> {
     try {
@@ -532,7 +559,7 @@ async function buildRelativeTimeReminder(message: discord.Message, args: string[
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
-    utils.log(`Parsed date = ${JSON.stringify(parsedDate)}, times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
+    utils.log(`Times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
 
     if (!parsedDate.valid) {
         await utils.send(message, `The time \`${args[0]}\` seems to be invalid. Try something like:\n${usage}`, bot);
@@ -621,7 +648,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     const parsedTimes = (isPeriodic && settings.times) ? parseInt(settings.times) : null;
     const parsedPeriodicity = isPeriodic ? parseRelativeTime(now, settings.periodicity, data.getTimezone()) : null;
 
-    utils.log(`Parsed date = ${JSON.stringify(parsedDate)}, times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
+    utils.log(`Times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
 
     if (!parsedDate.valid) {
         await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
