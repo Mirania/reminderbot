@@ -31,7 +31,7 @@ export type AbsoluteTime = {
 };
 
 // 1a2b3c123def ...
-export const relativeTimeRegex = /^(\d+[A-Za-z]+)+$/;
+export const relativeTimeRegex = /^([-+]?\d+[A-Za-z]+)+$/;
 
 export function isRelativeTime(time: RelativeTime | AbsoluteTime | null | undefined): time is RelativeTime {
     return time != null && typeof time['isSecondArgInputted'] !== "boolean";
@@ -42,14 +42,14 @@ export function isAbsoluteTime(time: RelativeTime | AbsoluteTime | null | undefi
 }
 
 export function parseRelativeTime(start: moment.Moment, relativeTime: string, tz: string): RelativeTime {
-    const tokens = relativeTime.match(/\d+|[A-Za-z]+/g) ?? [,];
+    const tokens = relativeTime.match(/([-+]?\d+)|[A-Za-z]+/g) ?? [,];
     const rawTimeValues: { [unit: string]: number } = {};
     const normalizedTimeValues: RelativeTimeValues = {};
 
     for (let i = 0; i < tokens.length; i += 2) {
         let value: number;
 
-        if (i + 1 >= tokens.length || rawTimeValues[tokens[i + 1]] != undefined || isNaN(value = Number(tokens[i])) || value <= 0) {
+        if (i + 1 >= tokens.length || rawTimeValues[tokens[i + 1]] != undefined || isNaN(value = Number(tokens[i]))) {
             utils.log(`Converted datetime = invalid`);
             return { valid: false };
         }
@@ -94,18 +94,17 @@ function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | un
 
     let convertedDate = "invalid", convertedTime = "invalid", isSecondArgInputted = true, isRelativeTimeExtensionTooShort = false;
 
-    const monthOrWeekdayRegex = /^[A-Za-z]+(\+[\dA-Za-z]+)?$/;
+    const monthOrWeekdayRegex = /^[A-Za-z]+([-+][-+\dA-Za-z]+)?$/;
     const shortDateRegex = /^([\d]{1,2})\/([\d]{1,2})$/;
     const longDateRegex = /^([\d]{1,2})\/([\d]{1,2})\/([\d]{2}|[\d]{4})$/;
     const shortTimeRegex = /^[\d]{1,2}[hH]?$/;
     const longTimeRegex = /^([\d]{1,2}):([\d]{2})$/;
 
     // the first arg is certainly part of the absolute time definition, and it may be a date or a time
-
     if (monthOrWeekdayRegex.test(dateOrTimeArg)) {
         // referring to a month or weekday by name. optionally also adding a relative time at the end >= 1d. units < 1d will be dropped.
         // example: sun, dec, tue+2d, thu+2w1d
-        const [absolutePart, relativePart] = dateOrTimeArg.split("+");
+        const [absolutePart, ...relativePart] = dateOrTimeArg.split(/(?=[-+])/);
         let result: moment.Moment;
         // start by parsing the absolute part
         switch (absolutePart.toLowerCase()) {
@@ -135,10 +134,10 @@ function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | un
             // default -> date stays invalid
         }
         // now add the optional relative part
-        if (result && relativePart) {
-            const relativeTime = parseRelativeTime(result, relativePart, tz);
+        if (result && relativePart && relativePart.length > 0) {
+            const relativeTime = parseRelativeTime(result, relativePart.join(""), tz);
             if (relativeTime.valid) {
-                isRelativeTimeExtensionTooShort = relativeTime.timeValues.h > 0 || relativeTime.timeValues.m > 0 || relativeTime.timeValues.s > 0;
+                isRelativeTimeExtensionTooShort = relativeTime.timeValues.h != null || relativeTime.timeValues.m != null || relativeTime.timeValues.s != null;
                 result = isRelativeTimeExtensionTooShort ? null : relativeTime.date; // null = date stays invalid
             } else {
                 // date stays invalid

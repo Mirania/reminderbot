@@ -80,6 +80,7 @@ export async function reminder(message: discord.Message, args: string[]): Promis
         "- Time can be omitted - default will be 06:00.\n" +
         "- Year can also be omitted - default will be the current year.\n" +
         "- Day/month/year can be also be written as sun, sunday, mon, monday, today... this means the next sunday/monday/etc.\n" +
+        "- You can make something relative to a certain day, like tue+2w or dec-1d. Units used must not be smaller than a day.\n" +
         "- Finally, `in` and `at` can be omitted - I'll try to guess which one you mean.";
 
     if (args.length < 2) {
@@ -637,6 +638,7 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
         "Alternatively you could omit the 00:45 - the default time will be 06:00.\n" +
         "You could also omit the 2030 - the default year will be the current one.\n" +
         "Instead of 31/01/2030 you could also use sun, sunday, mon, monday... this means the next sunday/monday/etc.\n" +
+        "You can make something relative to a certain day, like tue+2w or dec-1d. Units used must not be smaller than a day.\n" +
         "You can also omit the `at`. If your input is correct I'll still know what to do.";
 
     if (args.length < 2) {
