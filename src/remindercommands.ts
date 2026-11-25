@@ -468,6 +468,8 @@ export async function silence(message: discord.Message, args: string[]): Promise
     if (!parsedDate.valid) {
         if (isRelativeTime(parsedDate)) {
             await utils.send(message, `The time \`${args[0]}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        } else if (parsedDate.isRelativeTimeExtensionTooShort) {
+            await utils.send(message, `The relative time extension in \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` must not use units smaller than a day!`, bot);
         } else {
             await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
         }
@@ -651,7 +653,11 @@ async function buildAbsoluteTimeReminder(message: discord.Message, args: string[
     utils.log(`Times = ${parsedTimes}, periodicity = ${parsedPeriodicity}`);
 
     if (!parsedDate.valid) {
-        await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        if (parsedDate.isRelativeTimeExtensionTooShort) {
+            await utils.send(message, `The relative time extension in \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` must not use units smaller than a day!`, bot);
+        } else {
+            await utils.send(message, `The time \`${args[0]}${parsedDate.isSecondArgInputted ? " " + args[1] : ""}\` seems to be invalid. Try something like:\n${usage}`, bot);
+        }
         return;
     }
 
