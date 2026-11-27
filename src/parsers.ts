@@ -94,7 +94,7 @@ function convertAbsoluteTimeRawInput(dateOrTimeArg: string, timeArg: string | un
 
     let convertedDate = "invalid", convertedTime = "invalid", isSecondArgInputted = true, isRelativeTimeExtensionTooShort = false;
 
-    const monthOrWeekdayRegex = /^[A-Za-z]+([-+][-+\dA-Za-z]+)?$/;
+    const monthOrWeekdayRegex = /^[A-Za-z']+([-+][-+\dA-Za-z]+)?$/;
     const shortDateRegex = /^([\d]{1,2})\/([\d]{1,2})$/;
     const longDateRegex = /^([\d]{1,2})\/([\d]{1,2})\/([\d]{2}|[\d]{4})$/;
     const shortTimeRegex = /^[\d]{1,2}[hH]?$/;
